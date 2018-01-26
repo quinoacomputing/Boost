@@ -24,17 +24,18 @@ namespace std{
 #endif
 
 #include <boost/integer_traits.hpp>
-#include <boost/serialization/state_saver.hpp>
-#include <boost/serialization/throw_exception.hpp>
-#include <boost/serialization/tracking.hpp>
 
 #define BOOST_ARCHIVE_SOURCE
 // include this to prevent linker errors when the
 // same modules are marked export and import.
 #define BOOST_SERIALIZATION_SOURCE
+#include <boost/serialization/config.hpp>
+
+#include <boost/serialization/state_saver.hpp>
+#include <boost/serialization/throw_exception.hpp>
+#include <boost/serialization/tracking.hpp>
 
 #include <boost/archive/archive_exception.hpp>
-
 #include <boost/archive/detail/decl.hpp>
 #include <boost/archive/basic_archive.hpp>
 #include <boost/archive/detail/basic_iserializer.hpp>
@@ -458,6 +459,12 @@ basic_iarchive_impl::load_pointer(
     cobject_id & co = cobject_id_vector[i];
     bpis_ptr = co.bpis_ptr;
 
+    if (bpis_ptr == NULL) {
+        boost::serialization::throw_exception(
+            archive_exception(archive_exception::unregistered_class)
+        );
+    }
+
     load_preamble(ar, co);
 
     // extra line to evade borland issue
@@ -486,7 +493,7 @@ basic_iarchive_impl::load_pointer(
         m_pending.version = co.file_version;
 
         // predict next object id to be created
-        const unsigned int ui = object_id_vector.size();
+        const size_t ui = object_id_vector.size();
 
         serialization::state_saver<object_id_type> w_end(m_moveable_objects.end);
 

@@ -32,6 +32,7 @@
 //  * required only for pointers - optional for objects
 
 #define BOOST_ARCHIVE_SOURCE
+#include <boost/serialization/config.hpp>
 #include <boost/archive/basic_archive.hpp>
 
 namespace boost {
@@ -75,10 +76,13 @@ BOOST_ARCHIVE_SIGNATURE(){
 // 12- improved serialization of collections
 // 13- simplified visibility, removed Borland, removed pfto
 // 14- improved visibility, refactor map/set
+// 15- corrections to optional and collection loading
+// 16- eliminated dependency on <codecvt> which is buggy in some libraries
+//     and now officially deprecated in the standard
 
 BOOST_SYMBOL_VISIBLE library_version_type
 BOOST_ARCHIVE_VERSION(){
-    return library_version_type(14);
+    return library_version_type(16);
 }
 
 } // namespace archive

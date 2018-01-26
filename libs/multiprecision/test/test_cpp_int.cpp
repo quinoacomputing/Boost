@@ -11,12 +11,28 @@
 #  define _SCL_SECURE_NO_WARNINGS
 #endif
 
+//
+// This ensures all our code gets tested, even though it may
+// not be the fastest configuration in normal use:
+//
+#define BOOST_MP_USE_LIMB_SHIFT
+
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <boost/timer.hpp>
 #include "test.hpp"
+
+#ifdef _MSC_VER
+#pragma warning(disable:4127)  //  Conditional expression is constant
+#endif
+
+#if !defined(TEST1) && !defined(TEST2) && !defined(TEST3)
+#define TEST1
+#define TEST2
+#define TEST3
+#endif
 
 template <class T>
 T generate_random(unsigned bits_wanted)
@@ -374,7 +390,7 @@ struct tester
       BOOST_CHECK_EQUAL(msb(a), msb(a1));
    }
 
-   void test_bug_cases()
+   static void test_bug_cases()
    {
       if(!std::numeric_limits<test_type>::is_bounded)
       {
@@ -504,6 +520,14 @@ struct tester
       BOOST_CHECK(r < b);
       BOOST_CHECK_EQUAL(a - c * b, r);
 #endif
+      for(ui = 0; ui < 1000; ++ui)
+      {
+         boost::multiprecision::mpz_int t;
+         boost::multiprecision::mpz_int s1 = sqrt(boost::multiprecision::mpz_int(ui), t);
+         a = sqrt(test_type(ui), b);
+         BOOST_CHECK_EQUAL(a.str(), s1.str());
+         BOOST_CHECK_EQUAL(b.str(), t.str());
+      }
    }
 
    void test()
@@ -580,7 +604,11 @@ struct tester
          // Tests run on the compiler farm time out after 300 seconds,
          // so don't get too close to that:
          //
+#ifndef CI_SUPPRESS_KNOWN_ISSUES
          if(tim.elapsed() > 200)
+#else
+         if (tim.elapsed() > 25)
+#endif
          {
             std::cout << "Timeout reached, aborting tests now....\n";
             break;
@@ -590,15 +618,10 @@ struct tester
    }
 };
 
-#if !defined(TEST1) && !defined(TEST2) && !defined(TEST3)
-#define TEST1
-#define TEST2
-#define TEST3
-#endif
-
 int main()
 {
    using namespace boost::multiprecision;
+
 #ifdef TEST1
    tester<cpp_int> t1;
    t1.test();
@@ -611,6 +634,14 @@ int main()
    // Unchecked test verifies modulo arithmetic:
    tester<number<cpp_int_backend<2048, 2048, signed_magnitude, unchecked, void> > > t3;
    t3.test();
+#endif
+#ifdef TEST4
+   tester<number<cpp_int_backend<0, 2048, signed_magnitude, unchecked, std::allocator<void> > > > t4;
+   t4.test();
+#endif
+#ifdef TEST5
+   tester<number<cpp_int_backend<0, 2048, signed_magnitude, unchecked > > > t5;
+   t5.test();
 #endif
    return boost::report_errors();
 }

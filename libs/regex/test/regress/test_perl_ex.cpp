@@ -167,9 +167,9 @@ void test_options()
    TEST_REGEX_SEARCH("^   a\\ b[c ]d       $", perl|mod_x, "ab d", match_default, make_array(-2, -2));
 
    TEST_REGEX_SEARCH("^1234(?# test newlines\n  inside)", perl|mod_x, "1234", match_default, make_array(0, 4, -2, -2));
-   TEST_REGEX_SEARCH("^1234 #comment in extended re\n", perl|mod_x, "1234", match_default, make_array(0, 4, -2, -2));
+   TEST_REGEX_SEARCH("^1234 #comment in boost::regex::extended re\n", perl|mod_x, "1234", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("#rhubarb\n  abcd", perl|mod_x, "abcd", match_default, make_array(0, 4, -2, -2));
-   TEST_REGEX_SEARCH("^1234 #comment in extended re\r\n", perl|mod_x, "1234", match_default, make_array(0, 4, -2, -2));
+   TEST_REGEX_SEARCH("^1234 #comment in boost::regex::extended re\r\n", perl|mod_x, "1234", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("#rhubarb\r\n  abcd", perl|mod_x, "abcd", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("^abcd#rhubarb", perl|mod_x, "abcd", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("^abcd#rhubarb", perl, "abcd#rhubarb", match_default, make_array(0, 12, -2, -2));
@@ -205,6 +205,18 @@ void test_options()
    TEST_REGEX_SEARCH("(a (?x)b c)d e", perl, "a bcde", match_default, make_array(-2, -2));
    TEST_REGEX_SEARCH("(a b(?x)c d (?-x)e f)", perl, "a bcde f", match_default, make_array(0, 8, 0, 8, -2, -2));
    TEST_REGEX_SEARCH("(a b(?x)c d (?-x)e f)", perl, "abcdef", match_default, make_array(-2, -2));
+
+   TEST_INVALID_REGEX("a++(?#abc)+", perl);
+   TEST_INVALID_REGEX("a++(?#abc)?", perl);
+   TEST_INVALID_REGEX("a++(?#abc)*", perl);
+   TEST_INVALID_REGEX("a++(?#abc){2}", perl);
+   TEST_INVALID_REGEX("a++(?#abc)(?#more)+", perl);
+   TEST_REGEX_SEARCH("(?x) ab (?#first comment) (?#more)   +", perl, "abbbb", match_default, make_array(0, 5, -2, -2));
+   TEST_REGEX_SEARCH("ab(?#first comment)(?#more)+", perl, "abbbb", match_default, make_array(0, 5, -2, -2));
+   TEST_REGEX_SEARCH("(?x) ab (?#first comment) (?#more)   (c)", perl, "abc", match_default, make_array(0, 3, 2, 3, -2, -2));
+   TEST_REGEX_SEARCH("ab(?#first comment)(?#more)(c)", perl, "abc", match_default, make_array(0, 3, 2, 3, -2, -2));
+   TEST_REGEX_SEARCH("(?x) ab (?#first comment) (?#more)   (?:c)", perl, "abc", match_default, make_array(0, 3, -2, -2));
+   TEST_REGEX_SEARCH("ab(?#first comment)(?#more)(?:c)", perl, "abc", match_default, make_array(0, 3, -2, -2));
 }
 
 void test_options2()
@@ -245,6 +257,10 @@ void test_options2()
    TEST_REGEX_SEARCH("a(?i:b)*c", perl, "aBBc", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("a(?i:b)*c", perl, "aBC", match_default, make_array(-2, -2));
    TEST_REGEX_SEARCH("a(?i:b)*c", perl, "aBBC", match_default, make_array(-2, -2));
+   TEST_REGEX_SEARCH("(?i:j)|h", perl, "J", match_default, make_array(0, 1, -2, -2));
+   TEST_REGEX_SEARCH("(?i:j)|h", perl, "j", match_default, make_array(0, 1, -2, -2));
+   TEST_REGEX_SEARCH("(?i:j)|h", perl, "h", match_default, make_array(0, 1, -2, -2));
+   TEST_REGEX_SEARCH("(?i:j)|h", perl, "H", match_default, make_array(-2, -2));
 
    TEST_REGEX_SEARCH("a(?=b(?i)c)\\w\\wd", perl, "abcd", match_default, make_array(0, 4, -2, -2));
    TEST_REGEX_SEARCH("a(?=b(?i)c)\\w\\wd", perl, "abCd", match_default, make_array(0, 4, -2, -2));

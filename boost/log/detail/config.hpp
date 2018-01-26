@@ -23,16 +23,19 @@
 #define __MSVCRT_VERSION__ 0x0700
 #endif
 
+#include <boost/predef/os.h>
+
+// Try including WinAPI config as soon as possible so that any other headers don't include Windows SDK headers
+#if defined(BOOST_OS_WINDOWS_AVAILABLE)
+#include <boost/winapi/config.hpp>
+#endif
+
 #include <limits.h> // To bring in libc macros
 #include <boost/config.hpp>
 
 // The library requires dynamic_cast in a few places
 #if defined(BOOST_NO_RTTI)
 #   error Boost.Log: RTTI is required by the library
-#endif
-
-#if defined(BOOST_WINDOWS)
-#include <boost/detail/winapi/config.hpp>
 #endif
 
 #if defined(_MSC_VER) && _MSC_VER >= 1600
@@ -131,6 +134,21 @@
 #define BOOST_LOG_NO_CXX11_ARG_PACKS_TO_NON_VARIADIC_ARGS_EXPANSION
 #endif
 
+#if defined(BOOST_NO_CXX11_CONSTEXPR) || (defined(BOOST_GCC) && ((BOOST_GCC+0) / 100) <= 406)
+// GCC 4.6 does not support in-class brace initializers for static constexpr array members
+#define BOOST_LOG_NO_CXX11_CONSTEXPR_DATA_MEMBER_BRACE_INITIALIZERS
+#endif
+
+#if defined(BOOST_NO_CXX11_DEFAULTED_FUNCTIONS) || (defined(BOOST_GCC) && ((BOOST_GCC+0) / 100) <= 406)
+// GCC 4.6 cannot handle a defaulted function with noexcept specifier
+#define BOOST_LOG_NO_CXX11_DEFAULTED_NOEXCEPT_FUNCTIONS
+#endif
+
+#if defined(BOOST_NO_CXX11_DEFAULTED_FUNCTIONS) || (defined(BOOST_CLANG) && (((__clang_major__+0) == 3) && ((__clang_minor__+0) <= 1)))
+// Clang 3.1 cannot handle a defaulted constexpr constructor in some cases (presumably, if the class contains a member with a constexpr constructor)
+#define BOOST_LOG_NO_CXX11_DEFAULTED_CONSTEXPR_CONSTRUCTORS
+#endif
+
 #if defined(_MSC_VER)
 #   define BOOST_LOG_NO_VTABLE __declspec(novtable)
 #elif defined(__GNUC__)
@@ -165,6 +183,14 @@
 #   define BOOST_LOG_UNREACHABLE_RETURN(r) BOOST_LOG_UNREACHABLE()
 #endif
 
+// The macro efficiently returns a local lvalue from a function.
+// It employs NRVO, if supported by compiler, or uses a move constructor otherwise.
+#if defined(BOOST_HAS_NRVO)
+#define BOOST_LOG_NRVO_RESULT(x) x
+#else
+#define BOOST_LOG_NRVO_RESULT(x) boost::move(x)
+#endif
+
 // Some compilers support a special attribute that shows that a function won't return
 #if defined(__GNUC__) || (defined(__SUNPRO_CC) && __SUNPRO_CC >= 0x590)
     // GCC and Sun Studio 12 support attribute syntax
@@ -178,11 +204,14 @@
 #   define BOOST_LOG_NORETURN
 #endif
 
+// Some compilers may require marking types that may alias other types
+#define BOOST_LOG_MAY_ALIAS BOOST_MAY_ALIAS
+
 #if !defined(BOOST_LOG_BUILDING_THE_LIB)
 
 // Detect if we're dealing with dll
 #   if defined(BOOST_LOG_DYN_LINK) || defined(BOOST_ALL_DYN_LINK)
-#        define BOOST_LOG_DLL
+#       define BOOST_LOG_DLL
 #   endif
 
 #   if defined(BOOST_LOG_DLL)

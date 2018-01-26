@@ -17,9 +17,12 @@
 
 #include <boost/core/no_exceptions_support.hpp>
 
-#include <boost/serialization/singleton.hpp>
-
+// it marks our code with proper attributes as being exported when
+// we're compiling it while marking it import when just the headers
+// is being included.
 #define BOOST_SERIALIZATION_SOURCE
+#include <boost/serialization/config.hpp>
+#include <boost/serialization/singleton.hpp>
 #include <boost/serialization/extended_type_info_typeid.hpp>
 
 namespace boost { 
@@ -92,19 +95,18 @@ BOOST_SERIALIZATION_DECL void
 extended_type_info_typeid_0::type_unregister()
 {
     if(NULL != m_ti){
+        BOOST_ASSERT(! singleton<tkmap>::is_destroyed());
         if(! singleton<tkmap>::is_destroyed()){
             tkmap & x = singleton<tkmap>::get_mutable_instance();
-            tkmap::iterator start = x.lower_bound(this);
-            tkmap::iterator end = x.upper_bound(this);
-            BOOST_ASSERT(start != end);
 
-            // remove entry in map which corresponds to this type
-            do{
-            if(this == *start)
-                x.erase(start++);
-            else
-                ++start;
-            }while(start != end);
+            // remove all entries in map which corresponds to this type
+            // make sure that we don't use any invalidated iterators
+            for(;;){
+                const tkmap::iterator & it = x.find(this);
+                if(it == x.end())
+                    break;
+                x.erase(it);
+            };
         }
     }
     m_ti = NULL;

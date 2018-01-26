@@ -25,6 +25,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/geometry/io/svg/svg_mapper.hpp>
+#include <boost/geometry/algorithms/intersection.hpp>
 
 
 inline char piece_type_char(bg::strategy::buffer::piece_type const& type)
@@ -68,9 +69,12 @@ public :
         if(phase == 0)
         {
             map_pieces(collection.m_pieces, collection.offsetted_rings, true, true);
+        }
+        if (phase == 1)
+        {
             map_turns(collection.m_turns, true, false);
         }
-        if (phase == 1 && ! m_zoom)
+        if (phase == 2 && ! m_zoom)
         {
 //        map_traversed_rings(collection.traversed_rings);
 //        map_offsetted_rings(collection.offsetted_rings);
@@ -134,11 +138,6 @@ private :
                 default:
                     ; // to avoid "enumeration value not handled" warning
             }
-            if (!it->selectable_start)
-            {
-                fill = "fill:rgb(255,192,0);";
-                color = 'o'; // orange
-            }
             if (it->blocked())
             {
                 fill = "fill:rgb(128,128,128);";
@@ -153,16 +152,19 @@ private :
             if ((label_good_turns && is_good) || (label_wrong_turns && ! is_good))
             {
                 std::ostringstream out;
-                out << it->turn_index
+                out << it->turn_index;
+                if (it->cluster_id >= 0)
+                {
+                   out << " ("  << it->cluster_id << ")";
+                }
+                out
                     << " " << it->operations[0].piece_index << "/" << it->operations[1].piece_index
                     << " " << si(it->operations[0].seg_id) << "/" << si(it->operations[1].seg_id)
 
     //              If you want to see travel information
                     << std::endl
-                    << " nxt " << it->operations[0].enriched.travels_to_ip_index
-                    << "/" << it->operations[1].enriched.travels_to_ip_index
-                    << " or " << it->operations[0].enriched.next_ip_index
-                    << "/" << it->operations[1].enriched.next_ip_index
+                    << " nxt " << it->operations[0].enriched.get_next_turn_index()
+                    << "/" << it->operations[1].enriched.get_next_turn_index()
                     //<< " frac " << it->operations[0].fraction
 
     //                If you want to see (robust)point coordinates (e.g. to find duplicates)
@@ -266,7 +268,12 @@ private :
                 typedef typename bg::point_type<ring_type>::type point_type;
 
                 std::ostringstream out;
-                out << piece.index << " (" << piece_type_char(piece.type) << ") " << piece.first_seg_id.segment_index << ".." << piece.last_segment_index - 1;
+                out << piece.index
+                    << (piece.is_flat_start ? " FS" : "")
+                    << (piece.is_flat_end ? " FE" : "")
+                    << " (" << piece_type_char(piece.type) << ") "
+                    << piece.first_seg_id.segment_index
+                    << ".." << piece.last_segment_index - 1;
                 point_type label_point = bg::return_centroid<point_type>(corner);
 
                 if ((piece.type == bg::strategy::buffer::buffered_concave
@@ -377,8 +384,8 @@ public :
         }
     }
 
-    template <typename Mapper, typename Geometry, typename RescalePolicy>
-    void map_self_ips(Mapper& mapper, Geometry const& geometry, RescalePolicy const& rescale_policy)
+    template <typename Mapper, typename Geometry, typename Strategy, typename RescalePolicy>
+    void map_self_ips(Mapper& mapper, Geometry const& geometry, Strategy const& strategy, RescalePolicy const& rescale_policy)
     {
         typedef bg::detail::overlay::turn_info
         <
@@ -392,7 +399,7 @@ public :
         bg::self_turns
             <
                 bg::detail::overlay::assign_null_policy
-            >(geometry, rescale_policy, turns, policy);
+            >(geometry, strategy, rescale_policy, turns, policy);
 
         BOOST_FOREACH(turn_info const& turn, turns)
         {
