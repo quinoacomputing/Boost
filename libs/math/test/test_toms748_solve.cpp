@@ -7,7 +7,7 @@
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <boost/test/tools/floating_point_comparison.hpp>
 
 #include <boost/math/tools/toms748_solve.hpp>
 #include <boost/math/special_functions/gamma.hpp>
@@ -71,7 +71,7 @@ struct toms748tester
       case 7:
          return (1 + (1 - ip) * (1 - ip)) * x - (1 - ip * x) * (1 - ip * x);
       case 8:
-         return x * x - pow(1 - x, a);
+         return x * x - pow(1 - x, ip);
       case 9:
          return (1 + (1 - ip) * (1 - ip) * (1 - ip) * (1 - ip)) * x - (1 - ip * x) * (1 - ip * x) * (1 - ip * x) * (1 - ip * x);
       case 10:

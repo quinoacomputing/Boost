@@ -12,16 +12,12 @@
 
 #include <boost/concept_check.hpp>
 
-#include <boost/geometry/core/srs.hpp>
+#include <boost/geometry/srs/srs.hpp>
 #include <boost/geometry/algorithms/assign.hpp>
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/strategies/strategies.hpp>
 
 #include <test_common/test_point.hpp>
-
-#ifdef HAVE_TTMATH
-#  include <boost/geometry/extensions/contrib/ttmath_stub.hpp>
-#endif
 
 typedef bg::srs::spheroid<double> stype;
 

@@ -13,6 +13,7 @@ Access-Control-Allow-Credentials
 Access-Control-Allow-Headers
 Access-Control-Allow-Methods
 Access-Control-Allow-Origin
+Access-Control-Expose-Headers
 Access-Control-Max-Age
 Access-Control-Request-Headers
 Access-Control-Request-Method
@@ -274,6 +275,10 @@ Safe
 Schedule-Reply
 Schedule-Tag
 Security-Scheme
+Sec-Fetch-Dest
+Sec-Fetch-Mode
+Sec-Fetch-Site
+Sec-Fetch-User
 Sec-WebSocket-Accept
 Sec-WebSocket-Extensions
 Sec-WebSocket-Key

@@ -40,6 +40,7 @@
 #define BOOST_SPIRIT_LEXER_HPP
 
 ///////////////////////////////////////////////////////////////////////////////
+#include <boost/config.hpp>
 #include <boost/throw_exception.hpp>
 
 #include <boost/spirit/include/classic_core.hpp>
@@ -49,10 +50,13 @@
 
 #include <set>
 #include <map>
+#include <memory> // for auto_ptr/unique_ptr
 #include <vector>
 #include <stack>
 #include <utility> // for pair
+#if defined(BOOST_SPIRIT_DEBUG)
 #include <iostream>
+#endif
 #include <fstream>
 #include <boost/assert.hpp>
 #include <boost/limits.hpp>
@@ -115,16 +119,16 @@ public:
     char_node(const char_node& x);
     virtual ~char_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
@@ -231,16 +235,16 @@ public:
     epsilon_node(const epsilon_node& x);
     virtual ~epsilon_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
@@ -341,21 +345,21 @@ public:
     or_node(const or_node& x);
     virtual ~or_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
 
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
     std::unique_ptr<node> m_left;
     std::unique_ptr<node> m_right;
 #else
@@ -474,21 +478,21 @@ public:
     cat_node(const cat_node& x);
     virtual ~cat_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
 
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
     std::unique_ptr<node> m_left;
     std::unique_ptr<node> m_right;
 #else
@@ -630,21 +634,21 @@ public:
     star_node(const star_node& x);
     virtual ~star_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
 
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
     std::unique_ptr<node> m_left;
 #else
     std::auto_ptr<node> m_left;
@@ -753,16 +757,16 @@ public:
     eof_node(const eof_node& x);
     virtual ~eof_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
@@ -867,16 +871,16 @@ public:
     ccl_node(const ccl_node& x);
     virtual ~ccl_node(){}
 
-    virtual node* clone() const;
-    virtual bool nullable() const;
-    virtual node_set firstpos() const;
-    virtual node_set lastpos() const;
-    virtual void compute_followpos(followpos_t& followpos) const;
-    virtual void compute_state_match(state_match_t& state_match ) const;
-    virtual void get_eof_ids(node_set& eof_set) const;
-    virtual void assign_node_ids(node_id_t& node_count);
+    node* clone() const BOOST_OVERRIDE;
+    bool nullable() const BOOST_OVERRIDE;
+    node_set firstpos() const BOOST_OVERRIDE;
+    node_set lastpos() const BOOST_OVERRIDE;
+    void compute_followpos(followpos_t& followpos) const BOOST_OVERRIDE;
+    void compute_state_match(state_match_t& state_match ) const BOOST_OVERRIDE;
+    void get_eof_ids(node_set& eof_set) const BOOST_OVERRIDE;
+    void assign_node_ids(node_id_t& node_count) BOOST_OVERRIDE;
 #if defined(BOOST_SPIRIT_DEBUG) && (BOOST_SPIRIT_DEBUG_FLAGS & BOOST_SPIRIT_DEBUG_FLAGS_SLEX)
-    virtual void dump(std::ostream& out) const;
+    void dump(std::ostream& out) const BOOST_OVERRIDE;
 #endif
 
 private:
@@ -2417,7 +2421,7 @@ bool find_acceptance_state(const node_set& eof_node_ids,
 }
 
 template <typename RegexListT, typename GrammarT>
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
 inline std::unique_ptr<node>
 #else
 inline std::auto_ptr<node>
@@ -2429,7 +2433,7 @@ parse_regexes(const RegexListT& regex_list, GrammarT& g)
         boost::throw_exception(bad_regex());
 
     typename RegexListT::const_iterator ri = regex_list.begin();
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
     std::unique_ptr<node> tree(lexerimpl::parse(g, (*ri).str));
 #else
     std::auto_ptr<node> tree(lexerimpl::parse(g, (*ri).str));
@@ -2440,14 +2444,14 @@ parse_regexes(const RegexListT& regex_list, GrammarT& g)
     ++ri;
     for (/**/; ri != regex_list.end(); ++ri)
     {
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
         std::unique_ptr<node> next_tree(lexerimpl::parse(g, (*ri).str));
 #else
         std::auto_ptr<node> next_tree(lexerimpl::parse(g, (*ri).str));
 #endif
         if (next_tree.get() == 0)
             boost::throw_exception(bad_regex());
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
         tree = std::unique_ptr<node>(new or_node(tree.release(), next_tree.release()));
 #else
         tree = std::auto_ptr<node>(new or_node(tree.release(), next_tree.release()));
@@ -2473,7 +2477,7 @@ inline void
 lexer<IteratorT, TokenT, CallbackT>::create_dfa_for_state(int state)
 {
     using lexerimpl::node;
-#ifdef BOOST_NO_AUTO_PTR
+#ifndef BOOST_NO_CXX11_SMART_PTR
     std::unique_ptr<node> tree = lexerimpl::parse_regexes(m_regex_list[state], g);
 #else
     std::auto_ptr<node> tree = lexerimpl::parse_regexes(m_regex_list[state], g);

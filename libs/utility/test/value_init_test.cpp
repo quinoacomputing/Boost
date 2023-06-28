@@ -16,13 +16,13 @@
 #include <string>
 
 #include "boost/utility/value_init.hpp"
-#include <boost/shared_ptr.hpp>
 
-#ifdef __BORLANDC__
+#ifdef BOOST_BORLANDC
 #pragma hdrstop
 #endif
 
-#include <boost/detail/lightweight_test.hpp>
+#include <boost/core/lightweight_test.hpp>
+#include <boost/config/workaround.hpp>
 
 //
 // Sample POD type
@@ -218,8 +218,8 @@ void check_initialized_value ( T const& y )
   BOOST_TEST ( y == initializedValue ) ;
 }
 
-#ifdef  __BORLANDC__
-#if __BORLANDC__ == 0x582
+#ifdef  BOOST_BORLANDC
+#if BOOST_BORLANDC == 0x582
 void check_initialized_value( NonPOD const& )
 {
   // The initialized_value check is skipped for Borland 5.82
@@ -270,9 +270,12 @@ bool test ( T const& y, T const& z )
   boost::value_initialized<T> copy2;
   copy2 = x;
   BOOST_TEST ( boost::get(copy2) == boost::get(x) ) ;
-  
-  boost::shared_ptr<boost::value_initialized<T> > ptr( new boost::value_initialized<T> );
-  BOOST_TEST ( y == *ptr ) ;
+
+  {
+    boost::value_initialized<T> * ptr = new boost::value_initialized<T>;
+    BOOST_TEST ( y == *ptr ) ;
+    delete ptr;
+  }
 
 #if !BOOST_WORKAROUND(BOOST_MSVC, < 1300)
   boost::value_initialized<T const> cx ;
@@ -287,7 +290,7 @@ bool test ( T const& y, T const& z )
   return boost::detail::test_errors() == errors_before_test ;
 }
 
-int main(int, char **)
+int main()
 {
   BOOST_TEST ( test( 0,1234 ) ) ;
   BOOST_TEST ( test( 0.0,12.34 ) ) ;

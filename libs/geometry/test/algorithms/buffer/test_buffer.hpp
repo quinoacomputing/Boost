@@ -1,10 +1,10 @@
 // Boost.Geometry (aka GGL, Generic Geometry Library)
 // Unit Test Helper
 
-// Copyright (c) 2010-2015 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2010-2019 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2016-2017.
-// Modifications copyright (c) 2016-2017, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2016-2020.
+// Modifications copyright (c) 2016-2020, Oracle and/or its affiliates.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -26,6 +26,7 @@
 
 #include <boost/foreach.hpp>
 #include <geometry_test_common.hpp>
+#include <expectation_limits.hpp>
 
 #include <boost/geometry/algorithms/envelope.hpp>
 #include <boost/geometry/algorithms/area.hpp>
@@ -54,8 +55,8 @@
 const double same_distance = -999;
 
 #if defined(TEST_WITH_SVG)
-#  include <test_buffer_svg.hpp>
-#  include <test_buffer_svg_per_turn.hpp>
+#  include "test_buffer_svg.hpp"
+#  include "test_buffer_svg_per_turn.hpp"
 #endif
 
 //-----------------------------------------------------------------------------
@@ -95,34 +96,37 @@ template<> struct EndTestProperties<boost::geometry::strategy::buffer::end_flat>
     static std::string name() { return "flat"; }
 };
 
-struct ut_settings
+struct ut_settings : public ut_base_settings
 {
-    double tolerance;
-    bool test_validity;
-    bool test_area;
-
-    explicit ut_settings(double tol = 0.01, bool val = true)
-        : tolerance(tol)
-        , test_validity(val)
+    explicit ut_settings(double tol = 0.01, bool val = true, int points = 88)
+        : ut_base_settings(val)
+        , tolerance(tol)
         , test_area(true)
+        , use_ln_area(false)
+        , points_per_circle(points)
     {}
 
     static inline ut_settings ignore_validity()
     {
         ut_settings result;
-        result.test_validity = false;
+        result.set_test_validity(false);
         return result;
     }
 
     static inline ut_settings assertions_only()
     {
         ut_settings result;
-        result.test_validity = false;
         result.test_area = false;
+        result.set_test_validity(false);
         return result;
     }
 
     static inline double ignore_area() { return 9999.9; }
+
+    double tolerance;
+    bool test_area;
+    bool use_ln_area;
+    int points_per_circle;
 };
 
 template
@@ -133,17 +137,21 @@ template
     typename DistanceStrategy,
     typename SideStrategy,
     typename PointStrategy,
+    typename Strategy,
     typename Geometry
 >
-void test_buffer(std::string const& caseid, Geometry const& geometry,
+void test_buffer(std::string const& caseid,
+            bg::model::multi_polygon<GeometryOut>& buffered,
+            Geometry const& geometry,
             JoinStrategy const& join_strategy,
             EndStrategy const& end_strategy,
             DistanceStrategy const& distance_strategy,
             SideStrategy const& side_strategy,
             PointStrategy const& point_strategy,
+            Strategy const& strategy,
             int expected_count,
             int expected_holes_count,
-            double expected_area,
+            expectation_limits const& expected_area,
             ut_settings const& settings)
 {
     namespace bg = boost::geometry;
@@ -169,7 +177,7 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
     }
     else
     {
-        bg::envelope(geometry, envelope);
+        bg::envelope(geometry, envelope, strategy);
     }
 
     std::string join_name = JoinTestProperties<JoinStrategy>::name();
@@ -191,6 +199,9 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
         << (end_name.empty() ? "" : "_") << end_name
         << (distance_strategy.negative() ? "_deflate" : "")
         << (bg::point_order<GeometryOut>::value == bg::counterclockwise ? "_ccw" : "")
+#if defined(BOOST_GEOMETRY_USE_RESCALING)
+        << "_rescaled"
+#endif
          // << "_" << point_buffer_count
         ;
 
@@ -222,20 +233,14 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
     typedef typename bg::point_type<Geometry>::type point_type;
     typedef typename bg::rescale_policy_type<point_type>::type
         rescale_policy_type;
-    typedef typename bg::strategy::intersection::services::default_strategy
-        <
-            typename bg::cs_tag<Geometry>::type
-        >::type strategy_type;
-
+    
     // Enlarge the box to get a proper rescale policy
     bg::buffer(envelope, envelope, distance_strategy.max_distance(join_strategy, end_strategy));
 
-    strategy_type strategy;
     rescale_policy_type rescale_policy
-            = bg::get_rescale_policy<rescale_policy_type>(envelope);
+            = bg::get_rescale_policy<rescale_policy_type>(envelope, strategy);
 
-    bg::model::multi_polygon<GeometryOut> buffered;
-
+    buffered.clear();
     bg::detail::buffer::buffer_inserter<GeometryOut>(geometry,
                         std::back_inserter(buffered),
                         distance_strategy,
@@ -255,7 +260,7 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
     //std::cout << complete.str() << "," << std::fixed << std::setprecision(0) << area << std::endl;
     //return;
 
-    if (bg::is_empty(buffered) && bg::math::equals(expected_area, 0.0))
+    if (bg::is_empty(buffered) && expected_area.is_zero())
     {
         // As expected - don't get rescale policy for output (will be invalid)
         return;
@@ -272,7 +277,7 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
 
     bg::model::box<point_type> envelope_output;
     bg::assign_values(envelope_output, 0, 0, 1,  1);
-    bg::envelope(buffered, envelope_output);
+    bg::envelope(buffered, envelope_output, strategy);
 
     //    std::cout << caseid << std::endl;
     //    std::cout << "INPUT: " << bg::wkt(geometry) << std::endl;
@@ -305,23 +310,16 @@ void test_buffer(std::string const& caseid, Geometry const& geometry,
 
     if (settings.test_area)
     {
-        typename bg::default_area_result<GeometryOut>::type area = bg::area(buffered);
-        double const difference = area - expected_area;
-        BOOST_CHECK_MESSAGE
-            (
-                bg::math::abs(difference) < settings.tolerance,
-                complete.str() << " not as expected. " 
-                << std::setprecision(18)
-                << " Expected: " << expected_area
-                << " Detected: " << area
-                << " Diff: " << difference
-                << " Tol: " << settings.tolerance
-                << std::setprecision(3)
-                << " , " << 100.0 * (difference / expected_area) << "%"
-            );
+        auto const area = bg::area(buffered, strategy);
+        BOOST_CHECK_MESSAGE(expected_area.contains(area, settings.tolerance, settings.use_ln_area),
+              "difference: " << caseid << std::setprecision(20)
+              << " #area expected: " << expected_area
+              << " detected: " << area
+              << " type: " << (type_for_assert_message<Geometry, GeometryOut>())
+              );
     }
 
-    if (settings.test_validity && ! bg::is_valid(buffered))
+    if (settings.test_validity() && ! bg::is_valid(buffered))
     {
         BOOST_CHECK_MESSAGE(bg::is_valid(buffered), complete.str() <<  " is not valid");
     }
@@ -360,17 +358,23 @@ template
     typename PointStrategy,
     typename Geometry
 >
-void test_buffer(std::string const& caseid, Geometry const& geometry,
+void test_buffer(std::string const& caseid, bg::model::multi_polygon<GeometryOut>& buffered, Geometry const& geometry,
             JoinStrategy const& join_strategy,
             EndStrategy const& end_strategy,
             DistanceStrategy const& distance_strategy,
             SideStrategy const& side_strategy,
             PointStrategy const& point_strategy,
-            double expected_area,
+            expectation_limits const& expected_area,
             ut_settings const& settings = ut_settings())
 {
-    test_buffer<GeometryOut>(caseid, geometry,
+    typename bg::strategies::relate::services::default_strategy
+        <
+            Geometry, Geometry
+        >::type strategy;
+
+    test_buffer<GeometryOut>(caseid, buffered, geometry,
         join_strategy, end_strategy, distance_strategy, side_strategy, point_strategy,
+        strategy,
         -1, -1, expected_area, settings);
 }
 
@@ -387,7 +391,7 @@ template
 >
 void test_one(std::string const& caseid, std::string const& wkt,
         JoinStrategy const& join_strategy, EndStrategy const& end_strategy,
-        int expected_count, int expected_holes_count, double expected_area,
+        int expected_count, int expected_holes_count, expectation_limits const& expected_area,
         double distance_left, ut_settings const& settings = ut_settings(),
         double distance_right = same_distance)
 {
@@ -395,7 +399,6 @@ void test_one(std::string const& caseid, std::string const& wkt,
     Geometry g;
     bg::read_wkt(wkt, g);
     bg::correct(g);
-
 
 #ifdef BOOST_GEOMETRY_CHECK_WITH_POSTGIS
     std::cout
@@ -411,7 +414,7 @@ void test_one(std::string const& caseid, std::string const& wkt,
 
 
     bg::strategy::buffer::side_straight side_strategy;
-    bg::strategy::buffer::point_circle circle_strategy(88);
+    bg::strategy::buffer::point_circle circle_strategy(settings.points_per_circle);
 
     bg::strategy::buffer::distance_asymmetric
     <
@@ -420,17 +423,26 @@ void test_one(std::string const& caseid, std::string const& wkt,
                         bg::math::equals(distance_right, same_distance)
                         ? distance_left : distance_right);
 
+    typename bg::strategies::relate::services::default_strategy
+        <
+            Geometry, Geometry
+        >::type strategy;
+
+    bg::model::multi_polygon<GeometryOut> buffered;
     test_buffer<GeometryOut>
-            (caseid, g,
+            (caseid, buffered, g,
             join_strategy, end_strategy,
             distance_strategy, side_strategy, circle_strategy,
+            strategy,
             expected_count, expected_holes_count, expected_area,
             settings);
 
-#if !defined(BOOST_GEOMETRY_COMPILER_MODE_DEBUG) && defined(BOOST_GEOMETRY_COMPILER_MODE_RELEASE)
+#if !defined(BOOST_GEOMETRY_COMPILER_MODE_DEBUG) \
+    && !defined(BOOST_GEOMETRY_TEST_ONLY_ONE_ORDER) \
+    && defined(BOOST_GEOMETRY_COMPILER_MODE_RELEASE)
 
     // Also test symmetric distance strategy if right-distance is not specified
-    // (only in release mode)
+    // (only in release mode, not if "one order" if speficied)
     if (bg::math::equals(distance_right, same_distance))
     {
         bg::strategy::buffer::distance_symmetric
@@ -439,9 +451,10 @@ void test_one(std::string const& caseid, std::string const& wkt,
         > sym_distance_strategy(distance_left);
 
         test_buffer<GeometryOut>
-                (caseid + "_sym", g,
+                (caseid + "_sym", buffered, g,
                 join_strategy, end_strategy,
                 sym_distance_strategy, side_strategy, circle_strategy,
+                strategy,
                 expected_count, expected_holes_count, expected_area,
                 settings);
 
@@ -458,7 +471,7 @@ template
 >
 void test_one(std::string const& caseid, std::string const& wkt,
         JoinStrategy const& join_strategy, EndStrategy const& end_strategy,
-        double expected_area,
+        expectation_limits const& expected_area,
         double distance_left, ut_settings const& settings = ut_settings(),
         double distance_right = same_distance)
 {
@@ -484,7 +497,7 @@ void test_with_custom_strategies(std::string const& caseid,
         DistanceStrategy const& distance_strategy,
         SideStrategy const& side_strategy,
         PointStrategy const& point_strategy,
-        double expected_area,
+        expectation_limits const& expected_area,
         ut_settings const& settings = ut_settings())
 {
     namespace bg = boost::geometry;
@@ -492,8 +505,10 @@ void test_with_custom_strategies(std::string const& caseid,
     bg::read_wkt(wkt, g);
     bg::correct(g);
 
+    bg::model::multi_polygon<GeometryOut> buffered;
+
     test_buffer<GeometryOut>
-            (caseid, g,
+            (caseid, buffered, g,
             join_strategy, end_strategy,
             distance_strategy, side_strategy, point_strategy,
             expected_area, settings);

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,22 +10,80 @@
 // Test that header file is self-contained.
 #include <boost/beast/http/fields.hpp>
 
+#include <boost/beast/core/static_string.hpp>
 #include <boost/beast/http/empty_body.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/type_traits.hpp>
 #include <boost/beast/test/test_allocator.hpp>
-#include <boost/beast/unit_test/suite.hpp>
+#include <boost/beast/_experimental/unit_test/suite.hpp>
 #include <string>
 
 namespace boost {
 namespace beast {
 namespace http {
 
-BOOST_STATIC_ASSERT(is_fields<fields>::value);
-
 class fields_test : public beast::unit_test::suite
 {
 public:
+    static constexpr std::size_t max_static_buffer =
+        sizeof(beast::detail::temporary_buffer);
+
+    template<class T>
+    class test_allocator
+    {
+    public:
+        using value_type = T;
+
+        test_allocator() noexcept(false) {}
+
+        template<class U, class = typename
+            std::enable_if<!std::is_same<test_allocator, U>::value>::type>
+        test_allocator(test_allocator<U> const&) noexcept {}
+
+        value_type*
+        allocate(std::size_t n)
+        {
+            return static_cast<value_type*>(::operator new (n*sizeof(value_type)));
+        }
+
+        void
+        deallocate(value_type* p, std::size_t) noexcept
+        {
+            ::operator delete(p);
+        }
+
+        template<class U>
+        friend
+        bool
+        operator==(test_allocator<T> const&, test_allocator<U> const&) noexcept
+        {
+            return true;
+        }
+
+        template<class U>
+        friend
+        bool
+        operator!=(test_allocator<T> const& x, test_allocator<U> const& y) noexcept
+        {
+            return !(x == y);
+        }
+    };
+
+    using test_fields = basic_fields<test_allocator<char>>;
+
+    BOOST_STATIC_ASSERT(is_fields<fields>::value);
+    BOOST_STATIC_ASSERT(is_fields<test_fields>::value);
+
+    // std::allocator is noexcept movable, fields should satisfy
+    // these constraints as well.
+    BOOST_STATIC_ASSERT(std::is_nothrow_move_constructible<fields>::value);
+    BOOST_STATIC_ASSERT(std::is_nothrow_move_assignable<fields>::value);
+
+    // Check if basic_fields respects throw-constructibility and
+    // propagate_on_container_move_assignment of the allocator.
+    BOOST_STATIC_ASSERT(std::is_nothrow_move_constructible<test_fields>::value);
+    BOOST_STATIC_ASSERT(!std::is_nothrow_move_assignable<test_fields>::value);
+
     template<class Allocator>
     using fa_t = basic_fields<Allocator>;
 
@@ -37,7 +95,7 @@ public:
     fill(std::size_t n, basic_fields<Allocator>& f)
     {
         for(std::size_t i = 1; i<= n; ++i)
-            f.insert(std::to_string(i), i);
+            f.insert(std::to_string(i), to_static_string(i));
     }
 
     template<class U, class V>
@@ -334,16 +392,30 @@ public:
         BEAST_EXPECT(size(f) == 2);
     }
 
+    void testIteratorErase()
+    {
+        f_t f;
+        f.insert("a", "x");
+        f.insert("b", "y");
+        f.insert("c", "z");
+        BEAST_EXPECT(size(f) == 3);
+        f_t::const_iterator i = std::next(f.begin());
+        f.erase(i);
+        BEAST_EXPECT(size(f) == 2);
+        BEAST_EXPECT(std::next(f.begin(), 0)->name_string() == "a");
+        BEAST_EXPECT(std::next(f.begin(), 1)->name_string() == "c");
+    }
+
     void
     testContainer()
     {
         {
             // group fields
             fields f;
-            f.insert(field::age,   1);
-            f.insert(field::body,  2);
-            f.insert(field::close, 3);
-            f.insert(field::body,  4);
+            f.insert(field::age,   to_static_string(1));
+            f.insert(field::body,  to_static_string(2));
+            f.insert(field::close, to_static_string(3));
+            f.insert(field::body,  to_static_string(4));
             BEAST_EXPECT(std::next(f.begin(), 0)->name() == field::age);
             BEAST_EXPECT(std::next(f.begin(), 1)->name() == field::body);
             BEAST_EXPECT(std::next(f.begin(), 2)->name() == field::body);
@@ -363,10 +435,10 @@ public:
         {
             // group fields, case insensitive
             fields f;
-            f.insert("a",  1);
-            f.insert("ab", 2);
-            f.insert("b",  3);
-            f.insert("AB", 4);
+            f.insert("a",  to_static_string(1));
+            f.insert("ab", to_static_string(2));
+            f.insert("b",  to_static_string(3));
+            f.insert("AB", to_static_string(4));
             BEAST_EXPECT(std::next(f.begin(), 0)->name() == field::unknown);
             BEAST_EXPECT(std::next(f.begin(), 1)->name() == field::unknown);
             BEAST_EXPECT(std::next(f.begin(), 2)->name() == field::unknown);
@@ -386,14 +458,14 @@ public:
         {
             // verify insertion orde
             fields f;
-            f.insert( "a", 1);
-            f.insert("dd", 2);
-            f.insert("b",  3);
-            f.insert("dD", 4);
-            f.insert("c",  5);
-            f.insert("Dd", 6);
-            f.insert("DD", 7);
-            f.insert( "e", 8);
+            f.insert( "a", to_static_string(1));
+            f.insert("dd", to_static_string(2));
+            f.insert("b",  to_static_string(3));
+            f.insert("dD", to_static_string(4));
+            f.insert("c",  to_static_string(5));
+            f.insert("Dd", to_static_string(6));
+            f.insert("DD", to_static_string(7));
+            f.insert( "e", to_static_string(8));
             BEAST_EXPECT(f.count("dd") == 4);
             BEAST_EXPECT(std::next(f.begin(), 1)->name_string() == "dd");
             BEAST_EXPECT(std::next(f.begin(), 2)->name_string() == "dD");
@@ -407,13 +479,13 @@ public:
         // equal_range
         {
             fields f;
-            f.insert("E", 1);
-            f.insert("B", 2);
-            f.insert("D", 3);
-            f.insert("B", 4);
-            f.insert("C", 5);
-            f.insert("B", 6);
-            f.insert("A", 7);
+            f.insert("E", to_static_string(1));
+            f.insert("B", to_static_string(2));
+            f.insert("D", to_static_string(3));
+            f.insert("B", to_static_string(4));
+            f.insert("C", to_static_string(5));
+            f.insert("B", to_static_string(6));
+            f.insert("A", to_static_string(7));
             auto const rng = f.equal_range("B");
             BEAST_EXPECT(std::distance(rng.first, rng.second) == 3);
             BEAST_EXPECT(std::next(rng.first, 0)->value() == "2");
@@ -617,8 +689,7 @@ public:
                     (! res.keep_alive() && ! v));
             };
 
-        BOOST_STATIC_ASSERT(fields::max_static_buffer == 4096);
-        std::string const big(4096 + 1, 'a');
+        std::string const big(max_static_buffer + 1, 'a');
 
         // HTTP/1.0
         res.version(10);
@@ -778,10 +849,10 @@ public:
 
         res.content_length(0);
         BEAST_EXPECT(res[field::content_length] == "0");
-        
+
         res.content_length(100);
         BEAST_EXPECT(res[field::content_length] == "100");
-        
+
         res.content_length(boost::none);
         BEAST_EXPECT(res.count(field::content_length) == 0);
 
@@ -789,12 +860,12 @@ public:
         res.content_length(0);
         BEAST_EXPECT(res[field::content_length] == "0");
         BEAST_EXPECT(res.count(field::transfer_encoding) == 0);
-        
+
         res.set(field::transfer_encoding, "chunked");
         res.content_length(100);
         BEAST_EXPECT(res[field::content_length] == "100");
         BEAST_EXPECT(res.count(field::transfer_encoding) == 0);
-        
+
         res.set(field::transfer_encoding, "chunked");
         res.content_length(boost::none);
         BEAST_EXPECT(res.count(field::content_length) == 0);
@@ -806,12 +877,12 @@ public:
             res.content_length(0);
             BEAST_EXPECT(res[field::content_length] == "0");
             BEAST_EXPECT(res[field::transfer_encoding] == s);
-        
+
             res.set(field::transfer_encoding, s);
             res.content_length(100);
             BEAST_EXPECT(res[field::content_length] == "100");
             BEAST_EXPECT(res[field::transfer_encoding] == s);
-        
+
             res.set(field::transfer_encoding, s);
             res.content_length(boost::none);
             BEAST_EXPECT(res.count(field::content_length) == 0);
@@ -821,12 +892,12 @@ public:
             res.content_length(0);
             BEAST_EXPECT(res[field::content_length] == "0");
             BEAST_EXPECT(res[field::transfer_encoding] == s);
-        
+
             res.set(field::transfer_encoding, s + ", chunked");
             res.content_length(100);
             BEAST_EXPECT(res[field::content_length] == "100");
             BEAST_EXPECT(res[field::transfer_encoding] == s);
-        
+
             res.set(field::transfer_encoding, s + ", chunked");
             res.content_length(boost::none);
             BEAST_EXPECT(res.count(field::content_length) == 0);
@@ -836,12 +907,12 @@ public:
             res.content_length(0);
             BEAST_EXPECT(res[field::content_length] == "0");
             BEAST_EXPECT(res[field::transfer_encoding] == "chunked, " + s);
-        
+
             res.set(field::transfer_encoding, "chunked, " + s);
             res.content_length(100);
             BEAST_EXPECT(res[field::content_length] == "100");
             BEAST_EXPECT(res[field::transfer_encoding] == "chunked, " + s);
-        
+
             res.set(field::transfer_encoding, "chunked, " + s);
             res.content_length(boost::none);
             BEAST_EXPECT(res.count(field::content_length) == 0);
@@ -850,8 +921,7 @@ public:
 
         check("foo");
 
-        BOOST_STATIC_ASSERT(fields::max_static_buffer == 4096);
-        std::string const big(4096 + 1, 'a');
+        std::string const big(max_static_buffer + 1, 'a');
 
         check(big);
     }
@@ -875,7 +945,7 @@ public:
             };
 
         res.erase(field::transfer_encoding);
-        res.set(field::content_length, 32);
+        res.set(field::content_length, to_static_string(32));
         chunked(true);
         BEAST_EXPECT(res[field::transfer_encoding] == "chunked");
 
@@ -884,7 +954,7 @@ public:
         BEAST_EXPECT(res[field::transfer_encoding] == "chunked");
 
         res.erase(field::transfer_encoding);
-        res.set(field::content_length, 32);
+        res.set(field::content_length, to_static_string(32));
         chunked(false);
         BEAST_EXPECT(res.count(field::transfer_encoding) == 0);
 
@@ -920,18 +990,103 @@ public:
     }
 
     void
+    testIssue1828()
+    {
+        beast::http::fields req;
+        req.insert("abc", "1");
+        req.insert("abc", "2");
+        req.insert("abc", "3");
+        BEAST_EXPECT(req.count("abc") == 3);
+        auto iter = req.find("abc");
+        BEAST_EXPECT(iter->value() == "1");
+        req.insert("abc", "4");
+        req.erase(iter);
+        BEAST_EXPECT(req.count("abc") == 3);
+    }
+
+    template<class Arg1, class InArg>
+    struct set_test
+    {
+        static auto test(...) ->
+            std::false_type;
+
+        template<class U = InArg>
+        static auto test(U arg) ->
+            decltype(std::declval<fields>().
+                set(std::declval<Arg1>(),
+                    std::declval<U>()),
+                std::true_type());
+
+        static constexpr bool value =
+            decltype(test(std::declval<InArg>()))::value;
+    };
+
+    template<class Arg1, class InArg>
+    struct insert_test
+    {
+        static auto test(...) ->
+            std::false_type;
+
+        template<class U = InArg>
+        static auto test(U arg) ->
+            decltype(std::declval<fields>().
+                insert(std::declval<Arg1>(),
+                    std::declval<U>()),
+                std::true_type());
+
+        static constexpr bool value =
+            decltype(test(std::declval<InArg>()))::value;
+    };
+
+    void
+    testIssue2085()
+    {
+        BOOST_STATIC_ASSERT((! set_test<field, int>::value));
+        BOOST_STATIC_ASSERT((! set_test<field, std::nullptr_t>::value));
+        BOOST_STATIC_ASSERT((! set_test<field, double>::value));
+        BOOST_STATIC_ASSERT((! set_test<string_view, int>::value));
+        BOOST_STATIC_ASSERT((! set_test<string_view, std::nullptr_t>::value));
+        BOOST_STATIC_ASSERT((! set_test<string_view, double>::value));
+
+        BOOST_STATIC_ASSERT(( set_test<field, const char*>::value));
+        BOOST_STATIC_ASSERT(( set_test<field, string_view>::value));
+        BOOST_STATIC_ASSERT(( set_test<field, const char(&)[10]>::value));
+        BOOST_STATIC_ASSERT(( set_test<string_view, const char*>::value));
+        BOOST_STATIC_ASSERT(( set_test<string_view, string_view>::value));
+        BOOST_STATIC_ASSERT(( set_test<string_view, const char(&)[10]>::value));
+
+        BOOST_STATIC_ASSERT((! insert_test<field, int>::value));
+        BOOST_STATIC_ASSERT((! insert_test<field, std::nullptr_t>::value));
+        BOOST_STATIC_ASSERT((! insert_test<field, double>::value));
+        BOOST_STATIC_ASSERT((! insert_test<string_view, int>::value));
+        BOOST_STATIC_ASSERT((! insert_test<string_view, std::nullptr_t>::value));
+        BOOST_STATIC_ASSERT((! insert_test<string_view, double>::value));
+
+        BOOST_STATIC_ASSERT(( insert_test<field, const char*>::value));
+        BOOST_STATIC_ASSERT(( insert_test<field, string_view>::value));
+        BOOST_STATIC_ASSERT(( insert_test<field, const char(&)[10]>::value));
+        BOOST_STATIC_ASSERT(( insert_test<string_view, const char*>::value));
+        BOOST_STATIC_ASSERT(( insert_test<string_view, string_view>::value));
+        BOOST_STATIC_ASSERT(( insert_test<string_view, const char(&)[10]>::value));
+    }
+
+    void
     run() override
     {
         testMembers();
         testHeaders();
         testRFC2616();
         testErase();
+        testIteratorErase();
         testContainer();
         testPreparePayload();
 
         testKeepAlive();
         testContentLength();
         testChunked();
+
+        testIssue1828();
+        boost::ignore_unused(&fields_test::testIssue2085);
     }
 };
 

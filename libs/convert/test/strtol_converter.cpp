@@ -1,5 +1,5 @@
 // Boost.Convert test and usage example
-// Copyright (c) 2009-2016 Vladimir Batov.
+// Copyright (c) 2009-2020 Vladimir Batov.
 // Use, modification and distribution are subject to the Boost Software License,
 // Version 1.0. See http://www.boost.org/LICENSE_1_0.txt.
 
@@ -12,7 +12,6 @@ int main(int, char const* []) { return 0; }
 #include <boost/convert.hpp>
 #include <boost/convert/printf.hpp>
 #include <boost/convert/stream.hpp>
-#include <boost/detail/lightweight_test.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/uniform_01.hpp>
@@ -100,12 +99,12 @@ test_int_to_str()
     BOOST_TEST(L"-123" == convert<std::wstring> ( l_int).value());
     BOOST_TEST(L"-123" == convert<std::wstring> (ll_int).value());
 
-    int const            imin = std::numeric_limits<int>::min();
-    int const            imax = std::numeric_limits<int>::max();
-    long int const       lmin = std::numeric_limits<long int>::min();
-    long int const       lmax = std::numeric_limits<long int>::max();
-    long long int const llmin = std::numeric_limits<long long int>::min();
-    long long int const llmax = std::numeric_limits<long long int>::max();
+    int const            imin = (std::numeric_limits<int>::min)();
+    int const            imax = (std::numeric_limits<int>::max)();
+    long int const       lmin = (std::numeric_limits<long int>::min)();
+    long int const       lmax = (std::numeric_limits<long int>::max)();
+    long long int const llmin = (std::numeric_limits<long long int>::min)();
+    long long int const llmax = (std::numeric_limits<long long int>::max)();
 
     std::string const  imin_str = boost::lexical_cast<std::string>(imin);
     std::string const  imax_str = boost::lexical_cast<std::string>(imax);

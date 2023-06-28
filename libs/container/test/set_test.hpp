@@ -14,9 +14,15 @@
 #include <boost/container/detail/config_begin.hpp>
 #include "check_equal_containers.hpp"
 #include "print_container.hpp"
+#include "movable_int.hpp"
 #include <boost/move/utility_core.hpp>
 #include <boost/move/iterator.hpp>
 #include <boost/move/make_unique.hpp>
+
+#if defined(BOOST_GCC) && (BOOST_GCC >= 40600)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
 
 #define BOOST_INTRUSIVE_HAS_MEMBER_FUNCTION_CALLABLE_WITH_FUNCNAME rebalance
 #define BOOST_INTRUSIVE_HAS_MEMBER_FUNCTION_CALLABLE_WITH_NS_BEG namespace boost { namespace container { namespace test {
@@ -25,16 +31,21 @@
 #define BOOST_INTRUSIVE_HAS_MEMBER_FUNCTION_CALLABLE_WITH_MAX 0
 #include <boost/intrusive/detail/has_member_function_callable_with.hpp>
 
+//#pragma GCC diagnostic ignored "-Wunused-result"
+#if defined(BOOST_GCC) && (BOOST_GCC >= 40600)
+#pragma GCC diagnostic pop
+#endif
+
 namespace boost{
 namespace container {
 namespace test{
 
 template<class C>
-void set_test_rebalanceable(C &, boost::container::container_detail::false_type)
+void set_test_rebalanceable(C &, boost::container::dtl::false_type)
 {}
 
 template<class C>
-void set_test_rebalanceable(C &c, boost::container::container_detail::true_type)
+void set_test_rebalanceable(C &c, boost::container::dtl::true_type)
 {
    c.rebalance();
 }
@@ -43,7 +54,7 @@ template<class MyBoostSet
         ,class MyStdSet
         ,class MyBoostMultiSet
         ,class MyStdMultiSet>
-int set_test_copyable(boost::container::container_detail::false_type)
+int set_test_copyable(boost::container::dtl::false_type)
 {  return 0; }
 
 const int MaxElem = 50;
@@ -52,7 +63,7 @@ template<class MyBoostSet
         ,class MyStdSet
         ,class MyBoostMultiSet
         ,class MyStdMultiSet>
-int set_test_copyable(boost::container::container_detail::true_type)
+int set_test_copyable(boost::container::dtl::true_type)
 {
    typedef typename MyBoostSet::value_type IntType;
 
@@ -111,7 +122,7 @@ int set_test_copyable(boost::container::container_detail::true_type)
          return 1;
    }
    {
-      //Now, test copy constructor
+      //Now, test copy constructor with allocator
       MyBoostSet boostsetcopy(boostset, typename MyBoostSet::allocator_type());
       MyStdSet stdsetcopy(stdset);
 
@@ -346,28 +357,54 @@ int set_test ()
       return 1;
    }
 
-   //Swapping test
-   MyBoostSet tmpboosteset2;
-   MyStdSet tmpstdset2;
-   MyBoostMultiSet tmpboostemultiset2;
-   MyStdMultiSet tmpstdmultiset2;
-   boostset.swap(tmpboosteset2);
-   stdset.swap(tmpstdset2);
-   boostmultiset.swap(tmpboostemultiset2);
-   stdmultiset.swap(tmpstdmultiset2);
-   boostset.swap(tmpboosteset2);
-   stdset.swap(tmpstdset2);
-   boostmultiset.swap(tmpboostemultiset2);
-   stdmultiset.swap(tmpstdmultiset2);
-   if(!CheckEqualContainers(boostset, stdset)){
-      std::cout << "Error in boostset.swap(tmpboosteset2)" << std::endl;
-      return 1;
-   }
-   if(!CheckEqualContainers(boostmultiset, stdmultiset)){
-      std::cout << "Error in boostmultiset.swap(tmpboostemultiset2)" << std::endl;
-      return 1;
+   {
+      //Swapping test
+      MyBoostSet tmpboosteset2;
+      MyStdSet tmpstdset2;
+      MyBoostMultiSet tmpboostemultiset2;
+      MyStdMultiSet tmpstdmultiset2;
+      boostset.swap(tmpboosteset2);
+      stdset.swap(tmpstdset2);
+      boostmultiset.swap(tmpboostemultiset2);
+      stdmultiset.swap(tmpstdmultiset2);
+      boostset.swap(tmpboosteset2);
+      stdset.swap(tmpstdset2);
+      boostmultiset.swap(tmpboostemultiset2);
+      stdmultiset.swap(tmpstdmultiset2);
+      if(!CheckEqualContainers(boostset, stdset)){
+         std::cout << "Error in boostset.swap(tmpboosteset2)" << std::endl;
+         return 1;
+      }
+      if(!CheckEqualContainers(boostmultiset, stdmultiset)){
+         std::cout << "Error in boostmultiset.swap(tmpboostemultiset2)" << std::endl;
+         return 1;
+      }
    }
 
+   //move constructor/assignment
+   {
+      MyBoostSet tmpboosteset2(boost::move(boostset));
+      if(!CheckEqualContainers(tmpboosteset2, stdset)){
+         std::cout << "Error in boostset move constructor " << std::endl;
+         return 1;
+      }
+      MyBoostMultiSet tmpboostemultiset2(boost::move(boostmultiset));
+      if(!CheckEqualContainers(tmpboostemultiset2, stdmultiset)){
+         std::cout << "Error in boostmultiset move constructor " << std::endl;
+         return 1;
+      }
+
+      boostset = boost::move(tmpboosteset2);
+      if(!CheckEqualContainers(boostset, stdset)){
+         std::cout << "Error in boostset move assignment" << std::endl;
+         return 1;
+      }
+      boostmultiset = boost::move(tmpboostemultiset2);
+      if(!CheckEqualContainers(boostmultiset, stdmultiset)){
+         std::cout << "Error in boostmultiset move assignment" << std::endl;
+         return 1;
+      }
+   }
    //Insertion from other container
    //Initialize values
    {
@@ -388,12 +425,12 @@ int set_test ()
 
       boostset.insert(boost::make_move_iterator(&aux_vect[0]), boost::make_move_iterator(&aux_vect[0] + 50));
       stdset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
-      boostmultiset.insert(boost::make_move_iterator(&aux_vect3[0]), boost::make_move_iterator(aux_vect3 + 50));
-      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
       if(!CheckEqualContainers(boostset, stdset)){
-         std::cout << "Error in boostset.insert(boost::make_move_iterator(&aux_vect[0])..." << std::endl;
+         std::cout << "Error in boostset.insert(boost::make_move_iterator(&aux_vect3[0])..." << std::endl;
          return 1;
       }
+      boostmultiset.insert(boost::make_move_iterator(&aux_vect3[0]), boost::make_move_iterator(aux_vect3 + 50));
+      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
       if(!CheckEqualContainers(boostmultiset, stdmultiset)){
          std::cout << "Error in boostmultiset.insert(boost::make_move_iterator(&aux_vect3[0]), ..." << std::endl;
          return 1;
@@ -447,14 +484,14 @@ int set_test ()
       boostset.insert(boost::make_move_iterator(&aux_vect3[0]), boost::make_move_iterator(&aux_vect3[0] + 50));
       stdset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
       stdset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
-      boostmultiset.insert(boost::make_move_iterator(&aux_vect4[0]), boost::make_move_iterator(&aux_vect4[0] + 50));
-      boostmultiset.insert(boost::make_move_iterator(&aux_vect5[0]), boost::make_move_iterator(&aux_vect5[0] + 50));
-      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
-      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
       if(!CheckEqualContainers(boostset, stdset)){
          std::cout << "Error in boostset.insert(boost::make_move_iterator(&aux_vect3[0])..." << std::endl;
          return 1;
       }
+      boostmultiset.insert(boost::make_move_iterator(&aux_vect4[0]), boost::make_move_iterator(&aux_vect4[0] + 50));
+      boostmultiset.insert(boost::make_move_iterator(&aux_vect5[0]), boost::make_move_iterator(&aux_vect5[0] + 50));
+      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
+      stdmultiset.insert(&aux_vect2[0], &aux_vect2[0] + 50);
       if(!CheckEqualContainers(boostmultiset, stdmultiset)){
          std::cout << "Error in boostmultiset.insert(boost::make_move_iterator(&aux_vect5[0])..." << std::endl;
          return 1;
@@ -462,12 +499,12 @@ int set_test ()
 
       boostset.erase(*boostset.begin());
       stdset.erase(*stdset.begin());
-      boostmultiset.erase(*boostmultiset.begin());
-      stdmultiset.erase(*stdmultiset.begin());
       if(!CheckEqualContainers(boostset, stdset)){
          std::cout << "Error in boostset.erase(*boostset.begin())" << std::endl;
          return 1;
       }
+      boostmultiset.erase(*boostmultiset.begin());
+      stdmultiset.erase(*stdmultiset.begin());
       if(!CheckEqualContainers(boostmultiset, stdmultiset)){
          std::cout << "Error in boostmultiset.erase(*boostmultiset.begin())" << std::endl;
          return 1;
@@ -564,13 +601,13 @@ int set_test ()
             return 1;
          }
          set_test_rebalanceable(boostset
-            , container_detail::bool_<has_member_function_callable_with_rebalance<MyBoostSet>::value>());
+            , dtl::bool_<has_member_function_callable_with_rebalance<MyBoostSet>::value>());
          if(!CheckEqualContainers(boostset, stdset)){
             std::cout << "Error in boostset.rebalance()" << std::endl;
             return 1;
          }
          set_test_rebalanceable(boostmultiset
-            , container_detail::bool_<has_member_function_callable_with_rebalance<MyBoostMultiSet>::value>());
+            , dtl::bool_<has_member_function_callable_with_rebalance<MyBoostMultiSet>::value>());
          if(!CheckEqualContainers(boostmultiset, stdmultiset)){
             std::cout << "Error in boostmultiset.rebalance()" << std::endl;
             return 1;
@@ -580,11 +617,20 @@ int set_test ()
 
    //Compare count with std containers
    for(int i = 0; i < MaxElem; ++i){
-      IntType count_me(i);
-      if(boostset.count(count_me) != stdset.count(i)){
+      IntType k(i);
+      if(boostset.count(k) != stdset.count(i)){
          return -1;
       }
-      if(boostmultiset.count(count_me) != stdmultiset.count(i)){
+
+      if(boostset.contains(k) != (stdset.find(i) != stdset.end())){
+         return -1;
+      }
+
+      if(boostmultiset.count(k) != stdmultiset.count(i)){
+         return -1;
+      }
+
+      if(boostmultiset.contains(k) != (stdmultiset.find(i) != stdmultiset.end())){
          return -1;
       }
    }
@@ -794,7 +840,7 @@ int set_test ()
    }
 
    if(set_test_copyable<MyBoostSet, MyStdSet, MyBoostMultiSet, MyStdMultiSet>
-      (container_detail::bool_<boost::container::test::is_copyable<IntType>::value>())){
+      (dtl::bool_<boost::container::test::is_copyable<IntType>::value>())){
       return 1;
    }
 

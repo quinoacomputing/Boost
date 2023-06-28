@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,9 +10,9 @@
 #ifndef BOOST_BEAST_TEST_YIELD_TO_HPP
 #define BOOST_BEAST_TEST_YIELD_TO_HPP
 
+#include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/spawn.hpp>
-#include <boost/optional.hpp>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -32,12 +32,12 @@ namespace test {
 class enable_yield_to
 {
 protected:
-    boost::asio::io_context ioc_;
+    net::io_context ioc_;
 
 private:
-    boost::optional<
-        boost::asio::executor_work_guard<
-            boost::asio::io_context::executor_type>> work_;
+    beast::detail::select_work_guard_t<
+        net::io_context::executor_type>
+            work_;
     std::vector<std::thread> threads_;
     std::mutex m_;
     std::condition_variable cv_;
@@ -46,11 +46,12 @@ private:
 public:
     /// The type of yield context passed to functions.
     using yield_context =
-        boost::asio::yield_context;
+        net::yield_context;
 
     explicit
     enable_yield_to(std::size_t concurrency = 1)
-        : work_(ioc_.get_executor())
+        : work_(beast::detail::make_work_guard(
+            ioc_.get_executor()))
     {
         threads_.reserve(concurrency);
         while(concurrency--)
@@ -60,13 +61,13 @@ public:
 
     ~enable_yield_to()
     {
-        work_ = boost::none;
+        work_.reset();
         for(auto& t : threads_)
             t.join();
     }
 
     /// Return the `io_context` associated with the object
-    boost::asio::io_context&
+    net::io_context&
     get_io_service()
     {
         return ioc_;
@@ -121,7 +122,7 @@ void
 enable_yield_to::
 spawn(F0&& f, FN&&... fn)
 {
-    boost::asio::spawn(ioc_,
+    asio::spawn(ioc_,
         [&](yield_context yield)
         {
             f(yield);
@@ -136,5 +137,6 @@ spawn(F0&& f, FN&&... fn)
 } // test
 } // beast
 } // boost
+
 
 #endif

@@ -12,6 +12,7 @@ import indirect ;
 import modules ;
 import os ;
 import toolset ;
+ import ../../config/checks/config : requires ;
 
 feature.feature segmented-stacks : on : optional propagated composite ;
 feature.compose <segmented-stacks>on : <define>BOOST_USE_SEGMENTED_STACKS ;
@@ -25,8 +26,8 @@ feature.compose <valgrind>on : <define>BOOST_USE_VALGRIND ;
 project boost/context
     : requirements
       <target-os>windows:<define>_WIN32_WINNT=0x0601
-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
-      <toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
+      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-fsplit-stack
+      <target-os>linux,<toolset>gcc,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
       <toolset>gcc,<segmented-stacks>on:<linkflags>"-static-libgcc"
       <toolset>clang,<segmented-stacks>on:<cxxflags>-fsplit-stack
       <toolset>clang,<segmented-stacks>on:<cxxflags>-DBOOST_USE_SEGMENTED_STACKS
@@ -35,6 +36,12 @@ project boost/context
       <toolset>intel,<link>static:<define>BOOST_CONTEXT_EXPORT=
       <toolset>msvc,<link>shared:<define>BOOST_CONTEXT_EXPORT=EXPORT
       <toolset>msvc,<link>static:<define>BOOST_CONTEXT_EXPORT=
+      <toolset>clang-win,<link>shared:<define>BOOST_CONTEXT_EXPORT=EXPORT
+      <toolset>clang-win,<link>static:<define>BOOST_CONTEXT_EXPORT=
+      <toolset>embarcadero,<address-model>32,<link>shared:<define>BOOST_CONTEXT_EXPORT=EXPORT
+      <toolset>embarcadero,<address-model>32,<link>static:<define>BOOST_CONTEXT_EXPORT=
+      <toolset>borland,<link>shared:<define>BOOST_CONTEXT_EXPORT=EXPORT
+      <toolset>borland,<link>static:<define>BOOST_CONTEXT_EXPORT=
       <link>shared:<define>BOOST_CONTEXT_DYN_LINK=1
       <define>BOOST_CONTEXT_SOURCE
       <threading>multi
@@ -72,7 +79,8 @@ local rule default_abi ( )
     if [ os.name ] = "NT" { tmp = ms ; }
     else if [ os.name ] = "CYGWIN" { tmp = ms ; }
     else if [ os.platform ] = "ARM" { tmp = aapcs ; }
-    else if [ os.platform ] = "MIPS" { tmp = o32 ; }
+    else if [ os.platform ] = "MIPS32" { tmp = o32 ; }
+    else if [ os.platform ] = "MIPS64" { tmp = n64 ; }
     return $(tmp) ;
 }
 
@@ -101,67 +109,6 @@ feature.feature context-impl
 feature.set-default context-impl : fcontext ;
 feature.compose <context-impl>ucontext : <define>BOOST_USE_UCONTEXT ;
 feature.compose <context-impl>winfib : <define>BOOST_USE_WINFIB ;
-
-
-feature.feature context-switch
-    : cc
-      ec
-    : propagated
-      composite ;
-feature.set-default context-switch : cc ;
-feature.compose <context-switch>ec : <define>BOOST_USE_EXECUTION_CONTEXT ;
-
-
-actions gas32
-{
-    cpp -x assembler-with-cpp "$(>)" | as --32 -o "$(<)"
-}
-
-actions gas64
-{
-    cpp -x assembler-with-cpp "$(>)" | as --64 -o "$(<)"
-}
-
-actions gasx32
-{
-    cpp -x assembler-with-cpp "$(>)" | as --x32 -o "$(<)"
-}
-
-actions gas
-{
-    cpp -x assembler-with-cpp "$(>)" | as -o "$(<)"
-}
-
-actions armasm
-{
-    armasm "$(>)" "$(<)"
-}
-
-actions masm
-{
-    ml /c /Fo"$(<)" "$(>)"
-}
-
-actions masm64
-{
-    ml64 /c /Fo"$(<)" "$(>)"
-}
-
-
-rule configure ( properties * )
-{
-    local result  ;
-
-#   if ( ! ( <toolset>gcc in $(properties)
-#           || <toolset>intel in $(properties)
-#           || <toolset>msvc in $(properties) ) )
-#   {
-#       result = <build>no ;
-#       ECHO "toolset not supported" ;
-#   }
-
-    return $(result) ;
-}
 
 # ARM
 # ARM/AAPCS/ELF
@@ -282,7 +229,7 @@ alias asm_sources
    ;
 
 # MIPS
-# MIPS/O32/ELF
+# MIPS32/O32/ELF
 alias asm_sources
    : asm/make_mips32_o32_elf_gas.S
      asm/jump_mips32_o32_elf_gas.S
@@ -305,12 +252,36 @@ alias asm_sources
      <toolset>gcc
    ;
 
+# MIPS64/N64/ELF
+alias asm_sources
+   : asm/make_mips64_n64_elf_gas.S
+     asm/jump_mips64_n64_elf_gas.S
+     asm/ontop_mips64_n64_elf_gas.S
+   : <abi>n64
+     <address-model>64
+     <architecture>mips1
+     <binary-format>elf
+     <toolset>clang
+   ;
+
+alias asm_sources
+   : asm/make_mips64_n64_elf_gas.S
+     asm/jump_mips64_n64_elf_gas.S
+     asm/ontop_mips64_n64_elf_gas.S
+   : <abi>n64
+     <address-model>64
+     <architecture>mips1
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
 # POWERPC_32
 # POWERPC_32/SYSV/ELF
 alias asm_sources
    : asm/make_ppc32_sysv_elf_gas.S
      asm/jump_ppc32_sysv_elf_gas.S
      asm/ontop_ppc32_sysv_elf_gas.S
+     asm/tail_ppc32_sysv_elf_gas.cpp
    : <abi>sysv
      <address-model>32
      <architecture>power
@@ -322,11 +293,12 @@ alias asm_sources
    : asm/make_ppc32_sysv_elf_gas.S
      asm/jump_ppc32_sysv_elf_gas.S
      asm/ontop_ppc32_sysv_elf_gas.S
+     asm/tail_ppc32_sysv_elf_gas.cpp
    : <abi>sysv
      <address-model>32
      <architecture>power
      <binary-format>elf
-     <toolset>clang
+     <toolset>gcc
    ;
 
 alias asm_sources
@@ -447,6 +419,32 @@ alias asm_sources
      <binary-format>mach-o
    ;
 
+# RISCV64
+# RISCV64/SYSV/ELF
+alias asm_sources
+   : asm/make_riscv64_sysv_elf_gas.S
+     asm/jump_riscv64_sysv_elf_gas.S
+     asm/ontop_riscv64_sysv_elf_gas.S
+   : <abi>sysv
+     <address-model>64
+     <architecture>riscv
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+# S390X
+# S390X/SYSV/ELF
+alias asm_sources
+   : asm/make_s390x_sysv_elf_gas.S
+     asm/jump_s390x_sysv_elf_gas.S
+     asm/ontop_s390x_sysv_elf_gas.S
+   : <abi>sysv
+     <address-model>64
+     <architecture>s390x
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
 # X86
 # X86/SYSV/ELF
 alias asm_sources
@@ -519,9 +517,9 @@ alias asm_sources
    ;
 
 alias asm_sources
-   : asm/make_i386_ms_pe_gas.asm
-     asm/jump_i386_ms_pe_gas.asm
-     asm/ontop_i386_ms_pe_gas.asm
+   : asm/make_i386_ms_pe_masm.asm
+     asm/jump_i386_ms_pe_masm.asm
+     asm/ontop_i386_ms_pe_masm.asm
      dummy.cpp
    : <abi>ms
      <address-model>32
@@ -564,6 +562,40 @@ alias asm_sources
      <architecture>x86
      <binary-format>pe
      <toolset>msvc
+   ;
+
+# Embarcadero on Windows for 32-bits, bcc32x, uses tasm32,
+# which is masm compatible
+# This is configured in the embarcadero toolset as using
+# 'tasm32 /ml'
+
+alias asm_sources
+   : asm/make_i386_ms_pe_masm.asm
+     asm/jump_i386_ms_pe_masm.asm
+     asm/ontop_i386_ms_pe_masm.asm
+     dummy.cpp
+   : <abi>ms
+     <address-model>32
+     <architecture>x86
+     <binary-format>pe
+     <toolset>embarcadero
+   ;
+
+# Borland on Windows for 32-bits, bcc32c, uses tasm32,
+# which is masm compatible
+# This is configured in the borland toolset as using
+# 'tasm32 /ml'
+
+alias asm_sources
+   : asm/make_i386_ms_pe_masm.asm
+     asm/jump_i386_ms_pe_masm.asm
+     asm/ontop_i386_ms_pe_masm.asm
+     dummy.cpp
+   : <abi>ms
+     <address-model>32
+     <architecture>x86
+     <binary-format>pe
+     <toolset>borland
    ;
 
 # X86_64
@@ -649,9 +681,9 @@ alias asm_sources
    ;
 
 alias asm_sources
-   : asm/make_x86_64_ms_pe_gas.asm
-     asm/jump_x86_64_ms_pe_gas.asm
-     asm/ontop_x86_64_ms_pe_gas.asm
+   : asm/make_x86_64_ms_pe_masm.asm
+     asm/jump_x86_64_ms_pe_masm.asm
+     asm/ontop_x86_64_ms_pe_masm.asm
      dummy.cpp
    : <abi>ms
      <address-model>64
@@ -694,6 +726,21 @@ alias asm_sources
      <architecture>x86
      <binary-format>pe
      <toolset>msvc
+   ;
+   
+# Embarcadero on Windows, bcc64, uses the sysv-elf format for 64-bits
+# This is configured in the embarcadero toolset as using bcc64 with the
+# command line option '-x assembler-with-cpp'.
+
+alias asm_sources
+   : asm/make_x86_64_sysv_elf_gas.S
+     asm/jump_x86_64_sysv_elf_gas.S
+     asm/ontop_x86_64_sysv_elf_gas.S
+   : <abi>ms
+     <address-model>64
+     <architecture>x86
+     <binary-format>pe
+     <toolset>embarcadero
    ;
 
 # X86_64/SYSV/X32
@@ -758,30 +805,49 @@ explicit asm_sources ;
 alias impl_sources
     : asm_sources
     : <context-impl>fcontext
-      <context-switch>cc
-    ;
-
-alias impl_sources
-    : asm_sources
-      execution_context.cpp
-    : <context-impl>fcontext
-      <context-switch>ec
     ;
 
 # ucontext_t
 alias impl_sources
     : continuation.cpp
+      fiber.cpp
     : <context-impl>ucontext
+    [ requires cxx11_auto_declarations
+               cxx11_constexpr
+               cxx11_defaulted_functions
+               cxx11_final
+               cxx11_hdr_thread
+               cxx11_hdr_tuple
+               cxx11_lambdas
+               cxx11_noexcept
+               cxx11_nullptr
+               cxx11_rvalue_references
+               cxx11_template_aliases
+               cxx11_thread_local
+               cxx11_variadic_templates ]
     ;
 
 # WinFiber
 alias impl_sources
     : continuation.cpp
+      fiber.cpp
     : <context-impl>winfib
+    [ requires cxx11_auto_declarations
+               cxx11_constexpr
+               cxx11_defaulted_functions
+               cxx11_final
+               cxx11_hdr_thread
+               cxx11_hdr_tuple
+               cxx11_lambdas
+               cxx11_noexcept
+               cxx11_nullptr
+               cxx11_rvalue_references
+               cxx11_template_aliases
+               cxx11_thread_local
+               cxx11_variadic_templates ]
     ;
 
 explicit impl_sources ;
-
 
 obj cxx11_hdr_mutex_check : ../build/cxx11_hdr_mutex.cpp ;
 explicit cxx11_hdr_mutex_check ;
@@ -806,7 +872,6 @@ alias stack_traits_sources
     ;
 
 explicit stack_traits_sources ;
-
 
 lib boost_context
    : impl_sources

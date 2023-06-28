@@ -53,10 +53,9 @@ class polymorphic_allocator
    //! <b>Throws</b>: Nothing
    //!
    //! <b>Notes</b>: This constructor provides an implicit conversion from memory_resource*.
-   //!   Non-standard extension: if r is null m_resource is set to get_default_resource().
    polymorphic_allocator(memory_resource* r)
-      : m_resource(r ? r : ::boost::container::pmr::get_default_resource())
-   {}
+      : m_resource(r)
+   {  BOOST_ASSERT(r != 0);  }
 
    //! <b>Effects</b>: Sets m_resource to
    //!   other.resource().
@@ -104,7 +103,7 @@ class polymorphic_allocator
    void construct(U* p, BOOST_FWD_REF(Args)...args)
    {
       new_allocator<U> na;
-      container_detail::dispatch_uses_allocator
+      dtl::dispatch_uses_allocator
          (na, *this, p, ::boost::forward<Args>(args)...);
    }
 
@@ -117,7 +116,7 @@ class polymorphic_allocator
    void construct(U* p BOOST_MOVE_I##N BOOST_MOVE_UREFQ##N)\
    {\
       new_allocator<U> na;\
-      container_detail::dispatch_uses_allocator\
+      dtl::dispatch_uses_allocator\
          (na, *this, p BOOST_MOVE_I##N BOOST_MOVE_FWDQ##N);\
    }\
    //

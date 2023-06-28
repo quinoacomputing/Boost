@@ -2,9 +2,10 @@
 // Unit Test
 
 // Copyright (c) 2017 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2017 Adam Wulkiewicz, Lodz, Poland.
 
-// This file was modified by Oracle on 2017.
-// Modifications copyright (c) 2017, Oracle and/or its affiliates.
+// This file was modified by Oracle on 2017-2020.
+// Modifications copyright (c) 2017-2020, Oracle and/or its affiliates.
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -62,7 +63,7 @@ std::vector<std::size_t> apply_get_turns(std::string const& case_id,
             Strategy const& strategy,
             std::size_t expected_open_count,
             std::size_t expected_max_rank,
-            std::vector<int> const& expected_right_count)
+            std::vector<bg::signed_size_type> const& expected_right_count)
 {
     using namespace boost::geometry;
 
@@ -73,7 +74,7 @@ std::vector<std::size_t> apply_get_turns(std::string const& case_id,
     typedef bg::detail::overlay::turn_info
     <
         point_type,
-        typename bg::segment_ratio_type<point_type, RobustPolicy>::type
+        typename bg::detail::segment_ratio_type<point_type, RobustPolicy>::type
     > turn_info;
     typedef std::deque<turn_info> turn_container_type;
 
@@ -89,14 +90,14 @@ std::vector<std::size_t> apply_get_turns(std::string const& case_id,
 
     // Define sorter, sorting counter-clockwise such that polygons are on the
     // right side
-    typedef typename Strategy::side_strategy_type side_strategy;
+    typedef decltype(strategy.side()) side_strategy;
     typedef bg::detail::overlay::sort_by_side::side_sorter
         <
             false, false, overlay_union,
             point_type, side_strategy, std::less<int>
         > sbs_type;
 
-    sbs_type sbs(strategy.get_side_strategy());
+    sbs_type sbs(strategy.side());
 
     std::cout << "Case: " << case_id << std::endl;
 
@@ -119,7 +120,7 @@ std::vector<std::size_t> apply_get_turns(std::string const& case_id,
                     has_origin = true;
                 }
 
-                sbs.add(turn.operations[i], turn_index, i,
+                sbs.add(turn, turn.operations[i], turn_index, i,
                         geometry1, geometry2, is_origin);
 
             }
@@ -157,7 +158,7 @@ std::vector<std::size_t> apply_get_turns(std::string const& case_id,
 
     std::size_t const open_count = sbs.open_count(detail::overlay::operation_union);
     std::size_t const max_rank = sbs.m_ranked_points.back().rank;
-    std::vector<int> right_count(max_rank + 1, -1);
+    std::vector<bg::signed_size_type> right_count(max_rank + 1, -1);
 
     int previous_rank = -1;
     int previous_to_rank = -1;
@@ -226,7 +227,7 @@ void test_basic(std::string const& case_id,
                 std::string const& wkt_origin_point,
                 std::size_t expected_open_count,
                 std::size_t expected_max_rank,
-                std::vector<int> const& expected_right_count)
+                std::vector<bg::signed_size_type> const& expected_right_count)
 {
     typedef bg::model::point<T, 2, bg::cs::cartesian> point_type;
     typedef bg::model::polygon<point_type> polygon;
@@ -255,9 +256,9 @@ void test_basic(std::string const& case_id,
     rescale_policy_type robust_policy
         = bg::get_rescale_policy<rescale_policy_type>(g1, g2);
 
-    typedef typename bg::strategy::intersection::services::default_strategy
+    typedef typename bg::strategies::relate::services::default_strategy
         <
-            typename bg::cs_tag<point_type>::type
+            multi_polygon, multi_polygon
         >::type strategy_type;
 
     strategy_type strategy;

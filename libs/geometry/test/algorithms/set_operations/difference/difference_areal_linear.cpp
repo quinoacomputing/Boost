@@ -18,10 +18,6 @@
 #include <sstream>
 #include <string>
 
-// If defined, tests are run without rescaling-to-integer or robustness policy
-// Test which would fail then are disabled automatically
-// #define BOOST_GEOMETRY_NO_ROBUSTNESS
-
 #include <boost/geometry/algorithms/correct.hpp>
 #include <boost/geometry/algorithms/is_valid.hpp>
 
@@ -34,10 +30,6 @@
 #include <algorithms/overlay/overlay_cases.hpp>
 #include <algorithms/overlay/multi_overlay_cases.hpp>
 
-
-#ifdef HAVE_TTMATH
-#  include <boost/geometry/extensions/contrib/ttmath_stub.hpp>
-#endif
 
 template <typename CoordinateType>
 void test_ticket_10835(std::string const& wkt_out1, std::string const& wkt_out2)

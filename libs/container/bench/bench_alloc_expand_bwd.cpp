@@ -13,6 +13,7 @@
 #endif
 
 #include <boost/container/allocator.hpp>
+#include <boost/core/no_exceptions_support.hpp>
 
 #define BOOST_CONTAINER_VECTOR_ALLOC_STATS
 
@@ -21,10 +22,10 @@
 #include <iostream>  //std::cout, std::endl
 #include <cassert>   //assert
 
-#include <boost/timer/timer.hpp>
-using boost::timer::cpu_timer;
-using boost::timer::cpu_times;
-using boost::timer::nanosecond_type;
+#include <boost/move/detail/nsec_clock.hpp>
+using boost::move_detail::cpu_timer;
+using boost::move_detail::cpu_times;
+using boost::move_detail::nanosecond_type;
 
 namespace bc = boost::container;
 
@@ -109,7 +110,7 @@ void vector_test_template(unsigned int num_iterations, unsigned int num_elements
       bc::vector<MyInt, IntAllocator> v;
       v.reset_alloc_stats();
       void *first_mem = 0;
-      try{
+      BOOST_TRY{
          first_mem = bc::dlmalloc_malloc(sizeof(MyInt)*num_elements*3/2);
          v.push_back(MyInt(0));
          bc::dlmalloc_free(first_mem);
@@ -121,10 +122,11 @@ void vector_test_template(unsigned int num_iterations, unsigned int num_elements
          numexpand += v.num_expand_bwd;
          capacity = static_cast<unsigned int>(v.capacity());
       }
-      catch(...){
+      BOOST_CATCH(...){
          bc::dlmalloc_free(first_mem);
-         throw;
+         BOOST_RETHROW;
       }
+      BOOST_CATCH_END
    }
 
    assert(bc::dlmalloc_allocated_memory() == 0);
@@ -171,21 +173,25 @@ void vector_test_template(unsigned int num_iterations, unsigned int num_elements
 
 int main(int argc, const char *argv[])
 {
-   #define SINGLE_TEST
-   #ifndef SINGLE_TEST
+   //#define SINGLE_TEST
+   #define SIMPLE_IT
+   #ifdef SINGLE_TEST
+      #ifdef NDEBUG
+      unsigned int numit [] = { 10 };
+      #else
+      unsigned int numit [] = { 10 };
+      #endif
+      unsigned int numele [] = { 10000 };
+   #elif defined(SIMPLE_IT)
+      unsigned int numit [] = { 3 };
+      unsigned int numele[] = { 10000 };
+   #else
       #ifdef NDEBUG
       unsigned int numit [] = { 2000, 20000, 200000, 2000000 };
       #else
       unsigned int numit [] = { 100, 1000, 10000, 100000 };
       #endif
       unsigned int numele [] = { 10000, 1000,   100,     10       };
-   #else
-      #ifdef NDEBUG
-      unsigned int numit [] = { 2000 };
-      #else
-      unsigned int numit [] = { 100 };
-      #endif
-      unsigned int numele [] = { 10000 };
    #endif
 
    bool csv_output = argc == 2 && (strcmp(argv[1], "--csv-output") == 0);

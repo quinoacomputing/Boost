@@ -226,6 +226,8 @@ inline boost::math::concepts::std_real_concept sqrt(boost::math::concepts::std_r
 { return std::sqrt(a.value()); }
 inline boost::math::concepts::std_real_concept tanh(boost::math::concepts::std_real_concept a)
 { return std::tanh(a.value()); }
+inline boost::math::concepts::std_real_concept (nextafter)(boost::math::concepts::std_real_concept a, boost::math::concepts::std_real_concept b)
+{ return (boost::math::nextafter)(a, b); }
 //
 // C++11 ism's
 // Note that these must not actually call the std:: versions as that precludes using this
@@ -237,6 +239,10 @@ inline boost::math::concepts::std_real_concept acosh(boost::math::concepts::std_
 { return boost::math::acosh(a.value(), boost::math::policies::make_policy(boost::math::policies::overflow_error<boost::math::policies::ignore_error>())); }
 inline boost::math::concepts::std_real_concept atanh(boost::math::concepts::std_real_concept a)
 { return boost::math::atanh(a.value(), boost::math::policies::make_policy(boost::math::policies::overflow_error<boost::math::policies::ignore_error>())); }
+inline bool (isfinite)(boost::math::concepts::std_real_concept a)
+{
+   return (boost::math::isfinite)(a.value());
+}
 
 
 } // namespace std
@@ -354,7 +360,7 @@ namespace tools
 {
 
 template <>
-inline concepts::std_real_concept make_big_value<concepts::std_real_concept>(boost::math::tools::largest_float val, const char*, mpl::false_ const&, mpl::false_ const&)
+inline concepts::std_real_concept make_big_value<concepts::std_real_concept>(boost::math::tools::largest_float val, const char*, std::false_type const&, std::false_type const&)
 {
    return val;  // Can't use lexical_cast here, sometimes it fails....
 }
@@ -395,6 +401,13 @@ inline BOOST_MATH_CONSTEXPR int digits<concepts::std_real_concept>(BOOST_MATH_EX
   // unless std::numeric_limits<T>::is_specialized to provide digits.
    return digits<concepts::std_real_concept_base_type>();
 }
+
+template <>
+inline double real_cast<double, concepts::std_real_concept>(concepts::std_real_concept r)
+{
+   return static_cast<double>(r.value());
+}
+
 
 } // namespace tools
 

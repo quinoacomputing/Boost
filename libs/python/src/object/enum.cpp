@@ -44,7 +44,7 @@ extern "C"
     static PyObject* enum_repr(PyObject* self_)
     {
         PyObject *mod = PyObject_GetAttrString( self_, "__module__");
-        object auto_free(handle<>(mod));
+        object auto_free = object(handle<>(mod));
         enum_object* self = downcast<enum_object>(self_);
         if (!self->name)
         {
@@ -153,7 +153,7 @@ namespace
   {
       if (enum_type_object.tp_dict == 0)
       {
-          Py_TYPE(&enum_type_object) = incref(&PyType_Type);
+          Py_SET_TYPE(&enum_type_object, incref(&PyType_Type));
 #if PY_VERSION_HEX >= 0x03000000
           enum_type_object.tp_base = &PyLong_Type;
 #else

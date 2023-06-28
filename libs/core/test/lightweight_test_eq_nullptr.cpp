@@ -8,8 +8,12 @@
 // http://www.boost.org/LICENSE_1_0.txt
 //
 
-#include <boost/config.hpp>
+#if defined(_MSC_VER)
+# pragma warning( disable: 4100 ) // nullptr_t parameter unrereferenced
+#endif
+
 #include <boost/core/lightweight_test.hpp>
+#include <boost/config.hpp>
 
 int main()
 {
@@ -21,6 +25,9 @@ int main()
 
     BOOST_TEST_EQ( p1, nullptr );
     BOOST_TEST_NE( p2, nullptr );
+
+    BOOST_TEST_EQ( nullptr, p1 );
+    BOOST_TEST_NE( nullptr, p2 );
 
 #endif
 

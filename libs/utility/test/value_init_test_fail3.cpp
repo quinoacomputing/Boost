@@ -13,13 +13,11 @@
 
 #include "boost/utility/value_init.hpp"
 
-#ifdef __BORLANDC__
+#ifdef BOOST_BORLANDC
 #pragma hdrstop
 #endif
 
-#include "boost/test/minimal.hpp"
-
-int test_main(int, char **)
+int main()
 {
   boost::value_initialized<int const> const cx_c ;
 
@@ -27,11 +25,3 @@ int test_main(int, char **)
 
   return 0;
 }
-
-
-unsigned int expected_failures = 0;
-
-
-
-
-

@@ -8,11 +8,60 @@
 
 #include <cmath>
 #include <math.h>
+
+//
+// As per https://github.com/boostorg/math/issues/126
+// we basically need to include every std lib header we use, otherwise
+// our poisoned macros can break legit std lib code.
+//
+#include <boost/config.hpp>
+#include <valarray>
+#include <complex>
+#include <iosfwd>
+#include <sstream>
+#include <ostream>
+#include <istream>
+#include <utility>
+#include <iomanip>
+#include <typeinfo>
+#include <stdexcept>
+#include <cstddef>
+#include <string>
+#include <cstring>
+#include <cctype>
+#include <limits>
+#include <exception>
+#include <iterator>
+#include <numeric>
+#include <vector>
+#include <algorithm>
+#include <typeinfo>
+#include <memory>
+#include <cerrno>
+#include <functional>
+#ifndef BOOST_NO_CXX11_HDR_FUTURE
+#include <future>
+#endif
+#ifndef BOOST_NO_CXX11_HDR_THREAD
+#include <thread>
+#endif
+#ifndef BOOST_NO_CXX11_HDR_RANDOM
+#include <random>
+#endif
+#ifndef BOOST_NO_CXX11_HDR_CHRONO
+#include <chrono>
+#endif
+#include <map>
+
 //
 // We have to include this *before* poisoning the macros
 // as it needs to be able to use them!
 //
 #include <boost/math/special_functions/fpclassify.hpp>
+//
+// lexical_cast uses macro unsafe isinf etc, so we have to include this as well:
+//
+#include <boost/lexical_cast.hpp>
 
 //
 // Poison all the function-like macros in C99 so if we accidentally call them

@@ -35,7 +35,7 @@ obj test : test.cpp : <implicit-dependency>header3.h ;
 """)
 
 t.run_build_system(["-j2"])
-t.expect_addition("bin/$toolset/debug*/header3.h")
+t.expect_addition("bin/header3.h")
 t.expect_addition("bin/$toolset/debug*/test.obj")
 t.expect_nothing_more()
 
@@ -72,9 +72,9 @@ obj test : test.cpp :
 """)
 
 t.run_build_system(["-j2", "test"])
-t.expect_addition("bin/$toolset/debug*/header1.h")
-t.expect_addition("bin/$toolset/debug*/header2.h")
-t.expect_addition("bin/$toolset/debug*/header3.h")
+t.expect_addition("bin/header1.h")
+t.expect_addition("bin/header2.h")
+t.expect_addition("bin/header3.h")
 t.expect_addition("bin/$toolset/debug*/test.obj")
 t.expect_nothing_more()
 
@@ -122,9 +122,9 @@ obj test : test.cpp :
 """)
 
 t.run_build_system(["-j2", "test"])
-t.expect_addition("bin/$toolset/debug*/header1.h")
-t.expect_addition("bin/$toolset/debug*/header2.h")
-t.expect_addition("bin/$toolset/debug*/header3.h")
+t.expect_addition("bin/header1.h")
+t.expect_addition("bin/header2.h")
+t.expect_addition("bin/header3.h")
 t.expect_addition("bin/$toolset/debug*/test.obj")
 t.expect_nothing_more()
 
@@ -184,18 +184,20 @@ exe test : test2.cpp test1.cpp : <implicit-dependency>header3.h ;
 """)
 
 t.run_build_system(["-j2", "test"])
-t.expect_addition("bin/$toolset/debug*/header3.h")
+t.expect_addition("bin/header3.h")
 t.expect_addition("bin/$toolset/debug*/test1.obj")
 t.expect_addition("bin/$toolset/debug*/test2.obj")
 t.expect_addition("bin/$toolset/debug*/test.exe")
+t.ignore_addition("bin/*/test.rsp")
 t.expect_nothing_more()
 
 t.touch("header3.in")
 t.run_build_system(["-j2", "test"])
-t.expect_touch("bin/$toolset/debug*/header3.h")
+t.expect_touch("bin/header3.h")
 t.expect_touch("bin/$toolset/debug*/test1.obj")
 t.expect_touch("bin/$toolset/debug*/test2.obj")
 t.expect_touch("bin/$toolset/debug*/test.exe")
+t.ignore_touch("bin/*/test.rsp")
 t.expect_nothing_more()
 
 t.rm(".")
@@ -256,10 +258,11 @@ exe test : test2.cpp test1.cpp : <implicit-dependency>header2.h <include>. ;
 """)
 
 t.run_build_system(["-j2", "test"])
-t.expect_addition("bin/$toolset/debug*/header2.h")
+t.expect_addition("bin/header2.h")
 t.expect_addition("bin/$toolset/debug*/test1.obj")
 t.expect_addition("bin/$toolset/debug*/test2.obj")
 t.expect_addition("bin/$toolset/debug*/test.exe")
+t.ignore_addition("bin/*/test.rsp")
 t.expect_nothing_more()
 
 t.cleanup()

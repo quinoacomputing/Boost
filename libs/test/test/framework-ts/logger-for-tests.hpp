@@ -59,8 +59,8 @@ public:
 
         std::string pathname_fixes;
         {
-            const std::string to_look_for[] = {normalize_path(source_filename)};
-            const std::string to_replace[]  = {"xxx/" + basename };
+            const std::string to_look_for[] = { source_filename, normalize_path(source_filename)};
+            const std::string to_replace[]  = {"xxx/" + basename, "xxx/" + basename };
             pathname_fixes = utils::replace_all_occurrences_of(
                 current_string,
                 to_look_for, to_look_for + sizeof(to_look_for)/sizeof(to_look_for[0]),
@@ -70,6 +70,9 @@ public:
 
         std::string other_vars_fixes;
         {
+            std::ostringstream s_version;
+            s_version << BOOST_VERSION/100000 << "." << BOOST_VERSION/100 % 1000 << "." << BOOST_VERSION % 100;
+
             const std::string to_look_for[] = {"time=\"*\"",
                                                basename + "(*):",
                                                "unknown location(*):",
@@ -78,6 +81,10 @@ public:
                                                "<TestingTime>*</TestingTime>",
                                                "condition 2>3 is not satisfied\n",
                                                "condition 2>3 is not satisfied]",
+                                               BOOST_PLATFORM,
+                                               BOOST_STDLIB,
+                                               BOOST_COMPILER,
+                                               s_version.str()
                                                };
 
             const std::string to_replace[]  = {"time=\"0.1234\"",
@@ -88,6 +95,10 @@ public:
                                                "<TestingTime>ZZZ</TestingTime>",
                                                "condition 2>3 is not satisfied [2 <= 3]\n",
                                                "condition 2>3 is not satisfied [2 <= 3]]",
+                                               "BOOST_SOME_PLATFORM",
+                                               "BOOST_SOME_STDLIB",
+                                               "BOOST_SOME_COMPILER",
+                                               "BOOST_1.XX.Y_SOME_VERSION",
                                                };
 
             other_vars_fixes = utils::replace_all_occurrences_with_wildcards(
@@ -100,6 +111,37 @@ public:
         return other_vars_fixes;
     }
 
+};
+
+
+// helper for tests
+struct log_setup_teardown {
+  log_setup_teardown(
+    output_test_stream& output,
+    output_format log_format,
+    log_level ll,
+    log_level level_to_restore = invalid_log_level,
+    output_format additional_log_format = OF_INVALID)
+  : m_previous_ll(level_to_restore)
+  {
+    boost::unit_test::unit_test_log.set_format(log_format);
+    if(additional_log_format != OF_INVALID) {
+      boost::unit_test::unit_test_log.add_format(additional_log_format);
+    }
+    boost::unit_test::unit_test_log.set_stream(output);
+    if(level_to_restore == invalid_log_level) {
+      m_previous_ll = boost::unit_test::unit_test_log.set_threshold_level(ll);
+    }
+  }
+
+  ~log_setup_teardown() {
+    boost::unit_test::unit_test_log.set_format(OF_CLF);
+    boost::unit_test::unit_test_log.set_stream(std::cout);
+    boost::unit_test::unit_test_log.set_threshold_level( m_previous_ll );
+    boost::unit_test::unit_test_log.configure(); // forces reconfiguration
+  }
+
+  log_level m_previous_ll;
 };
 
 #endif /* BOOST_TEST_TESTS_LOGGER_FOR_TESTS_HPP__ */

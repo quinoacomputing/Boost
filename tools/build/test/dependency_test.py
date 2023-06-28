@@ -10,7 +10,7 @@ import BoostBuild
 
 
 def test_basic():
-    t = BoostBuild.Tester(["-d3", "-d+12"], pass_d0=False, use_test_config=False)
+    t = BoostBuild.Tester(["-d3", "-d+12"], use_test_config=False)
 
     t.write("a.cpp", """
 #include <a.h>
@@ -157,6 +157,8 @@ get_manager().engine().register_action("foo.foo",
     t.expect_touch("bin/$toolset/debug*/a_c.obj")
     t.expect_touch("bin/$toolset/debug*/b.exe")
     t.expect_touch("bin/$toolset/debug*/b.obj")
+    t.ignore_touch("bin/*/a.rsp")
+    t.ignore_touch("bin/*/b.rsp")
     t.expect_nothing_more()
 
     # Only source files using include <a.h> should be compiled.
@@ -166,6 +168,7 @@ get_manager().engine().register_action("foo.foo",
     t.expect_touch("bin/$toolset/debug*/a.exe")
     t.expect_touch("bin/$toolset/debug*/a.obj")
     t.expect_touch("bin/$toolset/debug*/a_c.obj")
+    t.ignore_touch("bin/*/a.rsp")
     t.expect_nothing_more()
 
     # "src/a.h" includes "b.h" (in the same dir).
@@ -174,6 +177,7 @@ get_manager().engine().register_action("foo.foo",
     t.expect_touch("bin/$toolset/debug*/a.exe")
     t.expect_touch("bin/$toolset/debug*/a.obj")
     t.expect_touch("bin/$toolset/debug*/a_c.obj")
+    t.ignore_touch("bin/*/a.rsp")
     t.expect_nothing_more()
 
     # Included by "src/b.h". We had a bug: file included using double quotes
@@ -211,7 +215,7 @@ def test_scanned_includes_with_absolute_paths():
     considered when scanning dependencies.
 
     """
-    t = BoostBuild.Tester(["-d3", "-d+12"], pass_d0=False)
+    t = BoostBuild.Tester(["-d3", "-d+12"])
 
     t.write("jamroot.jam", """\
 path-constant TOP : . ;

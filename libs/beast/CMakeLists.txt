@@ -9,111 +9,10 @@
 
 cmake_minimum_required (VERSION 3.5.1)
 
-project (Beast VERSION 144)
-
-set_property (GLOBAL PROPERTY USE_FOLDERS ON)
-option (Beast_BUILD_EXAMPLES "Build examples" ON)
-option (Beast_BUILD_TESTS "Build tests" ON)
-
-if (MSVC)
-    set (CMAKE_VERBOSE_MAKEFILE FALSE)
-
-    add_definitions (-D_WIN32_WINNT=0x0601)
-    add_definitions (-D_SCL_SECURE_NO_WARNINGS=1)
-    add_definitions (-D_CRT_SECURE_NO_WARNINGS=1)
-
-    add_compile_options(
-        /bigobj       # large object file format
-        /permissive-  # strict C++
-        #/wd4503      # decorated name length exceeded, name was truncated
-        /W4           # enable all warnings
-        /MP           # Multi-processor compilation
-        )
-
-    set (Boost_USE_STATIC_LIBS ON)
-    set (Boost_USE_STATIC_RUNTIME ON)
-
-    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Ob2 /Oi /Ot /GL /MT")
-    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oi /Ot /MT")
-
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-    set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG")
-
-    # for RelWithDebInfo builds, disable incremental linking
-    # since CMake sets it ON by default for that build type and it
-    # causes warnings
-    #
-    string (REPLACE "/INCREMENTAL" "/INCREMENTAL:NO" replacement_flags
-        ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
-    set (CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO ${replacement_flags})
-
-else()
-    set (THREADS_PREFER_PTHREAD_FLAG ON)
-    find_package (Threads)
-
-    set( CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wpedantic -Wno-unused-parameter")
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis")
-    endif ()
+if (POLICY CMP0074)
+    cmake_policy (SET CMP0074 NEW)
 endif()
 
-# Must come before Boost includes, otherwise the
-# IDE sees the wrong file due to boost/ symlinks.
-include_directories (include)
-
-#-------------------------------------------------------------------------------
-#
-# Boost
-#
-
-get_filename_component (BOOST_ROOT ../../ ABSOLUTE)
-
-# VFALCO I want static but "b2 stage" builds a minimal set which excludes static
-add_definitions (-DBOOST_ALL_STATIC_LINK=1)
-
-add_definitions (-DBOOST_ASIO_NO_DEPRECATED=1)
-add_definitions (-DBOOST_ASIO_DISABLE_BOOST_ARRAY=1)
-add_definitions (-DBOOST_ASIO_DISABLE_BOOST_BIND=1)
-add_definitions (-DBOOST_ASIO_DISABLE_BOOST_DATE_TIME=1)
-add_definitions (-DBOOST_ASIO_DISABLE_BOOST_REGEX=1)
-add_definitions (-DBOOST_COROUTINES_NO_DEPRECATION_WARNING=1)
-
-include_directories (${BOOST_ROOT})
-
-link_directories(${BOOST_ROOT}/stage/lib)
-
-if (MINGW)
-    link_libraries(ws2_32 mswsock)
-endif()
-
-#-------------------------------------------------------------------------------
-#
-# OpenSSL
-#
-
-if (APPLE AND NOT DEFINED ENV{OPENSSL_ROOT_DIR})
-  find_program(HOMEBREW brew)
-  if (NOT HOMEBREW STREQUAL "HOMEBREW-NOTFOUND")
-    execute_process(COMMAND brew --prefix openssl
-      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-  endif()
-endif()
-
-find_package(OpenSSL)
-
-if (OPENSSL_FOUND)
-    add_definitions (-DBOOST_BEAST_USE_OPENSSL=1)
-
-else()
-    add_definitions (-DBOOST_BEAST_USE_OPENSSL=0)
-    message("OpenSSL not found.")
-endif()
-
-#
 #-------------------------------------------------------------------------------
 
 function (DoGroupSources curdir rootdir folder)
@@ -136,6 +35,128 @@ function (GroupSources curdir folder)
 endfunction()
 
 #-------------------------------------------------------------------------------
+#
+# Beast
+#
+#-------------------------------------------------------------------------------
+
+project (Beast VERSION 313)
+
+set_property (GLOBAL PROPERTY USE_FOLDERS ON)
+option (Beast_BUILD_EXAMPLES "Build examples" ON)
+option (Beast_BUILD_TESTS "Build tests" ON)
+option (Beast_ENABLE_HANDLER_TRACKING "Define BOOST_ASIO_ENABLE_HANDLER_TRACKING when building libraries" OFF)
+option (Boost_USE_STATIC_LIBS "Use Static Boost libraries" ON)
+
+if (MSVC)
+    set (CMAKE_VERBOSE_MAKEFILE FALSE)
+
+    add_definitions (
+        -D_WIN32_WINNT=0x0601
+        -D_SCL_SECURE_NO_WARNINGS=1
+        -D_CRT_SECURE_NO_WARNINGS=1
+        -D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
+        -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING
+    )
+
+    add_compile_options(
+        /bigobj       # large object file format
+        /permissive-  # strict C++
+        #/wd4503      # decorated name length exceeded, name was truncated
+        /W4           # enable all warnings
+        /MP           # Multi-processor compilation
+        )
+
+    set (Boost_USE_STATIC_RUNTIME ON)
+
+    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Ob2 /Oi /Ot /GL /MT")
+    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oi /Ot /MT")
+
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+    set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG")
+
+    # for RelWithDebInfo builds, disable incremental linking
+    # since CMake sets it ON by default for that build type and it
+    # causes warnings
+    #
+    string (REPLACE "/INCREMENTAL" "/INCREMENTAL:NO" replacement_flags
+        ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
+    set (CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO ${replacement_flags})
+
+else()
+    set (THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package (Threads)
+    link_libraries(Threads::Threads)
+
+
+    set( CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wpedantic -Wno-unused-parameter")
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis")
+    endif ()
+endif()
+
+# Must come before Boost includes, otherwise the
+# IDE sees the wrong file due to boost/ symlinks.
+include_directories (include)
+
+#-------------------------------------------------------------------------------
+#
+# OpenSSL
+#
+#-------------------------------------------------------------------------------
+
+if (APPLE AND NOT DEFINED ENV{OPENSSL_ROOT_DIR})
+  find_program(HOMEBREW brew)
+  if (NOT HOMEBREW STREQUAL "HOMEBREW-NOTFOUND")
+    execute_process(COMMAND brew --prefix openssl
+      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
+endif()
+
+find_package(OpenSSL)
+if (NOT MSVC)
+    link_libraries(${OPENSSL_LIBRARIES})
+endif()
+
+#-------------------------------------------------------------------------------
+#
+# Boost
+#
+#-------------------------------------------------------------------------------
+
+get_filename_component (BOOST_ROOT ../../ ABSOLUTE)
+
+# VFALCO I want static but "b2 stage" builds a minimal set which excludes static
+add_definitions (-DBOOST_ALL_STATIC_LINK=1)
+
+add_definitions (-DBOOST_ASIO_NO_DEPRECATED=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_ARRAY=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_BIND=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_DATE_TIME=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_REGEX=1)
+add_definitions (-DBOOST_COROUTINES_NO_DEPRECATION_WARNING=1)
+
+if (MSVC)
+    include_directories (${BOOST_ROOT})
+    link_libraries( bcrypt.lib )
+else()
+    set(BOOST_INCLUDEDIR ${BOOST_ROOT})
+    set(BOOST_LIBRARYDIR ${BOOST_ROOT}/stage/lib)
+    find_package(Boost COMPONENTS coroutine filesystem system thread REQUIRED)
+    link_libraries(Boost::coroutine Boost::filesystem Boost::system Boost::thread)
+endif()
+
+link_directories(${BOOST_ROOT}/stage/lib)
+
+if (MINGW)
+    link_libraries(ws2_32 mswsock)
+endif()
+
+#-------------------------------------------------------------------------------
 
 if ("${VARIANT}" STREQUAL "coverage")
     if (MSVC)
@@ -150,8 +171,8 @@ elseif ("${VARIANT}" STREQUAL "ubasan")
     else()
         set (CMAKE_BUILD_TYPE RELWITHDEBINFO)
         set (CMAKE_CXX_FLAGS
-          "${CMAKE_CXX_FLAGS} -DBOOST_BEAST_NO_SLOW_TESTS=1 -msse4.2 -funsigned-char -fno-omit-frame-pointer -fsanitize=address,undefined -fsanitize-blacklist=${PROJECT_SOURCE_DIR}/tools/blacklist.supp")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+          "${CMAKE_CXX_FLAGS} -DBOOST_BEAST_NO_SLOW_TESTS=1 -msse4.2 -funsigned-char -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=address,undefined -fsanitize-blacklist=${PROJECT_SOURCE_DIR}/tools/blacklist.supp")
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined -fno-sanitize-recover=address,undefined")
     endif()
 
 elseif ("${VARIANT}" STREQUAL "debug")
@@ -161,6 +182,44 @@ elseif ("${VARIANT}" STREQUAL "release")
     set (CMAKE_BUILD_TYPE RELEASE)
 
 endif()
+
+#-------------------------------------------------------------------------------
+#
+# Static Libraries
+#
+#-------------------------------------------------------------------------------
+
+add_definitions (-DBOOST_ASIO_SEPARATE_COMPILATION=1)
+add_definitions (-DBOOST_BEAST_SEPARATE_COMPILATION=1)
+
+GroupSources (test "/")
+
+add_library (
+    lib-asio STATIC
+    test/lib_asio.cpp
+)
+if(Beast_ENABLE_HANDLER_TRACKING)
+    target_compile_definitions(lib-asio
+        PUBLIC BOOST_ASIO_ENABLE_HANDLER_TRACKING=1)
+endif()
+
+set_property(TARGET lib-asio PROPERTY FOLDER "static-libs")
+
+add_library (
+    lib-asio-ssl STATIC
+    test/lib_asio_ssl.cpp
+)
+
+set_property(TARGET lib-asio-ssl PROPERTY FOLDER "static-libs")
+
+add_library (
+    lib-beast STATIC
+    test/lib_beast.cpp
+)
+
+set_property(TARGET lib-beast PROPERTY FOLDER "static-libs")
+
+target_link_libraries(lib-beast lib-asio)
 
 #-------------------------------------------------------------------------------
 #
@@ -176,6 +235,11 @@ endif()
 file (GLOB_RECURSE BOOST_BEAST_FILES
     ${PROJECT_SOURCE_DIR}/include/boost/beast/*.hpp
     ${PROJECT_SOURCE_DIR}/include/boost/beast/*.ipp
+)
+
+file (GLOB_RECURSE BOOST_BEAST_EXPERIMENTAL_FILES
+    ${PROJECT_SOURCE_DIR}/include/boost/beast/_experimental/*.hpp
+    ${PROJECT_SOURCE_DIR}/include/boost/beast/_experimental/*.ipp
 )
 
 file (GLOB_RECURSE COMMON_FILES

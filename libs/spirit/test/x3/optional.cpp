@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include "test.hpp"
+#include "utils.hpp"
 
 struct adata
 {
@@ -34,6 +35,10 @@ struct test_attribute_type
 int
 main()
 {
+    using boost::spirit::x3::traits::is_optional;
+
+    static_assert(is_optional<boost::optional<int>>(), "is_optional problem");
+
     using spirit_test::test;
     using spirit_test::test_attr;
 
@@ -41,9 +46,23 @@ main()
     using boost::spirit::x3::omit;
     using boost::spirit::x3::ascii::char_;
 
+    BOOST_SPIRIT_ASSERT_CONSTEXPR_CTORS(-int_);
+
     {
         BOOST_TEST((test("1234", -int_)));
         BOOST_TEST((test("abcd", -int_, false)));
+
+        boost::optional<int> n;
+        BOOST_TEST(test_attr("", -int_, n))
+            && BOOST_TEST(!n);
+        BOOST_TEST(test_attr("123", -int_, n))
+            && BOOST_TEST(n) && BOOST_TEST_EQ(*n, 123);
+
+        boost::optional<std::string> s;
+        BOOST_TEST(test_attr("", -+char_, s))
+            && BOOST_TEST(!s);
+        BOOST_TEST(test_attr("abc", -+char_, s))
+            && BOOST_TEST(s) && BOOST_TEST_EQ(*s, "abc");
     }
 
     {   // test propagation of unused
@@ -96,6 +115,12 @@ main()
         BOOST_TEST(2 == v.size() &&
             1 == v[0].a && v[0].b && 2 == *(v[0].b) &&
             2 == v[1].a && !v[1].b);
+    }
+
+    { // test move only types
+        boost::optional<move_only> o;
+        BOOST_TEST(test_attr("s", -synth_move_only, o));
+        BOOST_TEST(o);
     }
 
     return boost::report_errors();

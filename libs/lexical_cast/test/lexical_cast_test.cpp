@@ -4,7 +4,7 @@
 //
 //  Copyright Terje Sletteb and Kevlin Henney, 2005.
 //  Copyright Alexander Nasonov, 2006.
-//  Copyright Antony Polukhin, 2011-2012.
+//  Copyright Antony Polukhin, 2011-2021.
 //
 //  Distributed under the Boost
 //  Software License, Version 1.0. (See accompanying file
@@ -31,7 +31,7 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <boost/test/tools/floating_point_comparison.hpp>
 
 #include <boost/type_traits/integral_promotion.hpp>
 #include <string>
@@ -502,7 +502,7 @@ void test_allocator()
 {
 // Following test cause compilation error on MSVC2012:
 // (Reason: cannot convert from 'std::_Wrap_alloc<_Alloc>' to 'const my_allocator<CharT>')
-// 
+//
 // MSVC developer is notified about this issue
 #if !defined(_MSC_VER) || (_MSC_VER < 1700)
     typedef std::basic_string< char
@@ -524,7 +524,7 @@ void test_wallocator()
 {
 // Following test cause compilation error on MSVC2012:
 // (Reason: cannot convert from 'std::_Wrap_alloc<_Alloc>' to 'const my_allocator<CharT>')
-// 
+//
 // MSVC developer is notified about this issue
 #if !defined(_MSC_VER) || (_MSC_VER < 1700)
     typedef std::basic_string< wchar_t
@@ -628,7 +628,7 @@ void test_char32_conversions()
 void test_getting_pointer_to_function()
 {
     // Just checking that &lexical_cast<To, From> is not ambiguous
-    typedef char char_arr[4];    
+    typedef char char_arr[4];
     typedef int(*f1)(const char_arr&);
     f1 p1 = &boost::lexical_cast<int, char_arr>;
     BOOST_CHECK(p1);

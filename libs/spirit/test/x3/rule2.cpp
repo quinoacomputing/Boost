@@ -5,9 +5,6 @@
     file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 
-// this file deliberately contains non-ascii characters
-// boostinspect:noascii
-
 #include <boost/detail/lightweight_test.hpp>
 #include <boost/spirit/home/x3.hpp>
 
@@ -15,6 +12,25 @@
 #include <cstring>
 #include <iostream>
 #include "test.hpp"
+
+namespace x3 = boost::spirit::x3;
+
+struct check_no_rule_injection_parser
+    : x3::parser<check_no_rule_injection_parser>
+{
+    typedef x3::unused_type attribute_type;
+    static bool const has_attribute = false;
+
+    template <typename Iterator, typename Context
+      , typename RuleContext, typename Attribute>
+    bool parse(Iterator&, Iterator const&, Context const&,
+        RuleContext&, Attribute&) const
+    {
+        static_assert(std::is_same<Context, x3::unused_type>::value,
+            "no rule definition injection should occur");
+        return true;
+    }
+} const check_no_rule_injection{};
 
 int
 main()
@@ -24,7 +40,6 @@ main()
 
     using namespace boost::spirit::x3::ascii;
     using boost::spirit::x3::rule;
-    using boost::spirit::x3::int_;
     using boost::spirit::x3::lit;
     using boost::spirit::x3::unused_type;
     using boost::spirit::x3::_attr;
@@ -106,6 +121,11 @@ main()
             BOOST_TEST(test("abcdef", r[f]));
             BOOST_TEST(s == "abcdef");
         }
+    }
+
+    {
+        BOOST_TEST(test("", rule<class a>{} = check_no_rule_injection));
+        BOOST_TEST(test("", rule<class a>{} %= check_no_rule_injection));
     }
 
     return boost::report_errors();

@@ -1,4 +1,4 @@
-//  This file was automatically generated on Sun Jul  9 16:30:35 2017
+//  This file was automatically generated on Wed Mar  3 12:23:03 2021
 //  by libs/config/tools/generate.cpp
 //  Copyright John Maddock 2002-4.
 //  Use, modification and distribution are subject to the 
@@ -24,6 +24,11 @@
 #ifdef TEST_BOOST_HAS_CLOCK_GETTIME
 #  ifndef BOOST_HAS_CLOCK_GETTIME
 #     error "Feature macro BOOST_HAS_CLOCK_GETTIME is not defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_HAS_PRAGMA_DETECT_MISMATCH
+#  ifndef BOOST_HAS_PRAGMA_DETECT_MISMATCH
+#     error "Feature macro BOOST_HAS_PRAGMA_DETECT_MISMATCH is not defined."
 #  endif
 #endif
 #ifdef TEST_BOOST_HAS_DIRENT_H
@@ -271,6 +276,16 @@
 #     error "Defect macro BOOST_NO_CWCTYPE is defined."
 #  endif
 #endif
+#ifdef TEST_BOOST_NO_CXX03
+#  ifdef BOOST_NO_CXX03
+#     error "Defect macro BOOST_NO_CXX03 is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX11
+#  ifdef BOOST_NO_CXX11
+#     error "Defect macro BOOST_NO_CXX11 is defined."
+#  endif
+#endif
 #ifdef TEST_BOOST_NO_CXX11_ADDRESSOF
 #  ifdef BOOST_NO_CXX11_ADDRESSOF
 #     error "Defect macro BOOST_NO_CXX11_ADDRESSOF is defined."
@@ -289,6 +304,16 @@
 #ifdef TEST_BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #  ifdef BOOST_NO_CXX11_ATOMIC_SMART_PTR
 #     error "Defect macro BOOST_NO_CXX11_ATOMIC_SMART_PTR is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX11_DEFAULTED_MOVES
+#  ifdef BOOST_NO_CXX11_DEFAULTED_MOVES
+#     error "Defect macro BOOST_NO_CXX11_DEFAULTED_MOVES is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX11_HDR_EXCEPTION
+#  ifdef BOOST_NO_CXX11_HDR_EXCEPTION
+#     error "Defect macro BOOST_NO_CXX11_HDR_EXCEPTION is defined."
 #  endif
 #endif
 #ifdef TEST_BOOST_NO_CXX11_FINAL
@@ -406,6 +431,11 @@
 #     error "Defect macro BOOST_NO_CXX11_NUMERIC_LIMITS is defined."
 #  endif
 #endif
+#ifdef TEST_BOOST_NO_CXX11_OVERRIDE
+#  ifdef BOOST_NO_CXX11_OVERRIDE
+#     error "Defect macro BOOST_NO_CXX11_OVERRIDE is defined."
+#  endif
+#endif
 #ifdef TEST_BOOST_NO_CXX11_POINTER_TRAITS
 #  ifdef BOOST_NO_CXX11_POINTER_TRAITS
 #     error "Defect macro BOOST_NO_CXX11_POINTER_TRAITS is defined."
@@ -441,9 +471,19 @@
 #     error "Defect macro BOOST_NO_CXX11_TRAILING_RESULT_TYPES is defined."
 #  endif
 #endif
+#ifdef TEST_BOOST_NO_CXX11_UNRESTRICTED_UNION
+#  ifdef BOOST_NO_CXX11_UNRESTRICTED_UNION
+#     error "Defect macro BOOST_NO_CXX11_UNRESTRICTED_UNION is defined."
+#  endif
+#endif
 #ifdef TEST_BOOST_NO_CXX11_USER_DEFINED_LITERALS
 #  ifdef BOOST_NO_CXX11_USER_DEFINED_LITERALS
 #     error "Defect macro BOOST_NO_CXX11_USER_DEFINED_LITERALS is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX14
+#  ifdef BOOST_NO_CXX14
+#     error "Defect macro BOOST_NO_CXX14 is defined."
 #  endif
 #endif
 #ifdef TEST_BOOST_NO_CXX14_BINARY_LITERALS
@@ -501,9 +541,59 @@
 #     error "Defect macro BOOST_NO_CXX14_VARIABLE_TEMPLATES is defined."
 #  endif
 #endif
+#ifdef TEST_BOOST_NO_CXX17
+#  ifdef BOOST_NO_CXX17
+#     error "Defect macro BOOST_NO_CXX17 is defined."
+#  endif
+#endif
 #ifdef TEST_BOOST_NO_CXX17_FOLD_EXPRESSIONS
 #  ifdef BOOST_NO_CXX17_FOLD_EXPRESSIONS
 #     error "Defect macro BOOST_NO_CXX17_FOLD_EXPRESSIONS is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_ANY
+#  ifdef BOOST_NO_CXX17_HDR_ANY
+#     error "Defect macro BOOST_NO_CXX17_HDR_ANY is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_CHARCONV
+#  ifdef BOOST_NO_CXX17_HDR_CHARCONV
+#     error "Defect macro BOOST_NO_CXX17_HDR_CHARCONV is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_EXECUTION
+#  ifdef BOOST_NO_CXX17_HDR_EXECUTION
+#     error "Defect macro BOOST_NO_CXX17_HDR_EXECUTION is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_FILESYSTEM
+#  ifdef BOOST_NO_CXX17_HDR_FILESYSTEM
+#     error "Defect macro BOOST_NO_CXX17_HDR_FILESYSTEM is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_MEMORY_RESOURCE
+#  ifdef BOOST_NO_CXX17_HDR_MEMORY_RESOURCE
+#     error "Defect macro BOOST_NO_CXX17_HDR_MEMORY_RESOURCE is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_OPTIONAL
+#  ifdef BOOST_NO_CXX17_HDR_OPTIONAL
+#     error "Defect macro BOOST_NO_CXX17_HDR_OPTIONAL is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_STRING_VIEW
+#  ifdef BOOST_NO_CXX17_HDR_STRING_VIEW
+#     error "Defect macro BOOST_NO_CXX17_HDR_STRING_VIEW is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_HDR_VARIANT
+#  ifdef BOOST_NO_CXX17_HDR_VARIANT
+#     error "Defect macro BOOST_NO_CXX17_HDR_VARIANT is defined."
+#  endif
+#endif
+#ifdef TEST_BOOST_NO_CXX17_IF_CONSTEXPR
+#  ifdef BOOST_NO_CXX17_IF_CONSTEXPR
+#     error "Defect macro BOOST_NO_CXX17_IF_CONSTEXPR is defined."
 #  endif
 #endif
 #ifdef TEST_BOOST_NO_CXX17_INLINE_VARIABLES

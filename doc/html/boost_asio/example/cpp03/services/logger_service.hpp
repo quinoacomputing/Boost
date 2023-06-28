@@ -2,7 +2,7 @@
 // logger_service.hpp
 // ~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2017 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -13,7 +13,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -25,11 +25,11 @@ namespace services {
 
 /// Service implementation for the logger.
 class logger_service
-  : public boost::asio::io_context::service
+  : public boost::asio::execution_context::service
 {
 public:
-  /// The unique service identifier.
-  static boost::asio::io_context::id id;
+  /// The type used to identify this service in the execution context.
+  typedef logger_service key_type;
 
   /// The backend implementation of a logger.
   struct logger_impl
@@ -42,10 +42,11 @@ public:
   typedef logger_impl* impl_type;
 
   /// Constructor creates a thread to run a private io_context.
-  logger_service(boost::asio::io_context& io_context)
-    : boost::asio::io_context::service(io_context),
+  logger_service(boost::asio::execution_context& context)
+    : boost::asio::execution_context::service(context),
       work_io_context_(),
-      work_(boost::asio::make_work_guard(work_io_context_)),
+      work_(boost::asio::require(work_io_context_.get_executor(),
+            boost::asio::execution::outstanding_work.tracked)),
       work_thread_(new boost::thread(
             boost::bind(&boost::asio::io_context::run, &work_io_context_)))
   {
@@ -56,13 +57,13 @@ public:
   {
     /// Indicate that we have finished with the private io_context. Its
     /// io_context::run() function will exit once all other work has completed.
-    work_.reset();
+    work_ = boost::asio::any_io_executor();
     if (work_thread_)
       work_thread_->join();
   }
 
   /// Destroy all user-defined handler objects owned by the service.
-  void shutdown_service()
+  void shutdown()
   {
   }
 
@@ -128,11 +129,10 @@ private:
   /// Private io_context used for performing logging operations.
   boost::asio::io_context work_io_context_;
 
-  /// Work for the private io_context to perform. If we do not give the
-  /// io_context some work to do then the io_context::run() function will exit
-  /// immediately.
-  boost::asio::executor_work_guard<
-      boost::asio::io_context::executor_type> work_;
+  /// A work-tracking executor giving work for the private io_context to
+  /// perform. If we do not give the io_context some work to do then the
+  /// io_context::run() function will exit immediately.
+  boost::asio::any_io_executor work_;
 
   /// Thread used for running the work io_context's run loop.
   boost::scoped_ptr<boost::thread> work_thread_;

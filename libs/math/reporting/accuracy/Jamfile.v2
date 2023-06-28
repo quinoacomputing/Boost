@@ -38,8 +38,8 @@ if $(is_unix)
 lib gsl ;
 lib gslcblas ;
 lib Rmath ;
-obj has_libstdcxx_tr1 : has_libstdcxx_tr1.cpp ;
-explicit has_libstdcxx_tr1 ;
+obj has_cxx17_cmath : has_cxx17_cmath.cpp ;
+explicit has_cxx17_cmath ;
 obj has_c99_cmath : has_c99_cmath.cpp ;
 explicit has_c99_cmath ;
 exe has_gsl : has_gsl.cpp gsl gslcblas ;
@@ -88,11 +88,11 @@ rule all-tests {
           <toolset>gcc:<linkflags>$(OTHERFLAGS) ]
          ;
          result += [ run $(source) /boost/regex//boost_regex /boost/system /boost/filesystem /boost/test//boost_unit_test_framework 
-         : : : [ check-target-builds has_libstdcxx_tr1 : <define>TEST_LIBSTDCXX : <build>no ] 
+         : : : [ check-target-builds has_cxx17_cmath : <define>TEST_CXX17_CMATH : <build>no ] 
           <target-os>linux:<linkflags>-lpthread
           <target-os>linux:<linkflags>-lrt
           <toolset>gcc:<linkflags>$(OTHERFLAGS)
-          : $(source:B)_libstdcxx_tr1 ] 
+          : $(source:B)_cxx17_cmath ] 
          ;
          result += [ run $(source) /boost/regex//boost_regex /boost/system /boost/filesystem /boost/test//boost_unit_test_framework 
          : : : [ check-target-builds has_c99_cmath : <define>TEST_C99 : <build>no ] 
@@ -159,3 +159,25 @@ boostbook standalone
         <xsl:param>generate.section.toc.level=10
     ;
 
+lib gmp ;
+lib mpfr ;
+lib quadmath ;
+#
+# Some manual tests that are expensive to run:
+#
+run erf_error_plot.cpp mpfr gmp : : : release <cxxstd>17 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erf_error_plot_double ;
+explicit erf_error_plot_double ;
+run erf_error_plot.cpp mpfr gmp : : : release <cxxstd>17 <define>TEST_TYPE="\"long double\"" [ check-target-builds ../../config//has_mpfr : : <build>no ] : erf_error_plot_long_double ;
+explicit erf_error_plot_long_double ;
+run erf_error_plot.cpp mpfr gmp : : : release <cxxstd>17 <define>TEST_TYPE=cpp_bin_float_50 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erf_error_plot_cpp_bin_float_50 ;
+explicit erf_error_plot_cpp_bin_float_50 ;
+run erf_error_plot.cpp mpfr gmp quadmath : : : release <cxxstd>17 <cxxstd-dialect>gnu <define>TEST_TYPE=float128 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erf_error_plot_float128 ;
+explicit erf_error_plot_cpp_bin_float_50 ;
+run erfc_error_plot.cpp mpfr gmp : : : release <cxxstd>17 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erfc_error_plot_double ;
+explicit erfc_error_plot_double ;
+run erfc_error_plot.cpp mpfr gmp : : : release <cxxstd>17 <define>TEST_TYPE="\"long double\"" [ check-target-builds ../../config//has_mpfr : : <build>no ] : erfc_error_plot_long_double ;
+explicit erfc_error_plot_long_double ;
+run erfc_error_plot.cpp mpfr gmp : : : release <cxxstd>17 <define>TEST_TYPE=cpp_bin_float_50 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erfc_error_plot_cpp_bin_float_50 ;
+explicit erfc_error_plot_cpp_bin_float_50 ;
+run erfc_error_plot.cpp mpfr gmp quadmath : : : release <cxxstd>17 <cxxstd-dialect>gnu <define>TEST_TYPE=float128 [ check-target-builds ../../config//has_mpfr : : <build>no ] : erfc_error_plot_float128 ;
+explicit erfc_error_plot_cpp_bin_float_50 ;

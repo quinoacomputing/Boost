@@ -36,8 +36,8 @@ class model::polygon
 [[typename Point] [] [point type ]]
 [[bool ClockWise] [true] [true for clockwise direction, false for CounterClockWise direction ]]
 [[bool Closed] [true] [true for closed polygons (last point == first point), false open points ]]
-[[template< typename, typename > class PointList] [std::vector] [container type for points, for example std::vector, std::list, std::deque ]]
-[[template< typename, typename > class RingList] [std::vector] [container type for inner rings, for example std::vector, std::list, std::deque ]]
+[[template< typename, typename > class PointList] [std::vector] [container type for points, for example std::vector, std::deque ]]
+[[template< typename, typename > class RingList] [std::vector] [container type for inner rings, for example std::vector, std::deque ]]
 [[template< typename > class PointAlloc] [std::allocator] [container-allocator-type, for the points ]]
 [[template< typename > class RingAlloc] [std::allocator] [container-allocator-type, for the rings ]]
 ]
@@ -62,7 +62,7 @@ class model::polygon
 [heading Member Function(s)]
 [table
 [[Function] [Description] [Parameters]  [Returns]]
-[[``ring_type const & outer()``
+[[``ring_type const  & outer()``
 
 ] [] [
 
@@ -70,7 +70,7 @@ class model::polygon
 
 ]
 ]
-[[``inner_container_type const & inners()``
+[[``inner_container_type const  & inners()``
 
 ] [] [
 

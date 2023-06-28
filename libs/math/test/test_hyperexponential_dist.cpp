@@ -15,11 +15,12 @@
 
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <boost/test/tools/floating_point_comparison.hpp>
 
 #include <cstddef>
 #include <iostream>
 #include <vector>
+#include <tuple>
 
 #define BOOST_MATH_HYPEREXP_CHECK_CLOSE_COLLECTIONS(T, actual, expected, tol) \
     do {                                                                      \
@@ -34,15 +35,15 @@
     } while(false)
 
 #ifndef BOOST_MATH_NO_LONG_DOUBLE_MATH_FUNCTIONS
-typedef boost::mpl::list<float, double, long double, boost::math::concepts::real_concept> test_types;
+using test_types = std::tuple<float, double, long double, boost::math::concepts::real_concept>;
 #else
-typedef boost::mpl::list<float, double> test_types;
+using test_types = std::tuple<float, double>;
 #endif
 
 template <typename RealT>
 RealT make_tolerance()
 {
-    // Tolerance is 100eps expressed as a persentage (as required by Boost.Build):
+    // Tolerance is 100eps expressed as a percentage (as required by Boost.Build):
     return boost::math::tools::epsilon<RealT>() * 100 * 100;
 }
 

@@ -8,6 +8,7 @@
     "Antony Polukhin <antoshkka -at- gmail.com>"
   ],
   "description": "Gather, store, copy and print backtraces.",
+  "std": [ "c++23" ],
   "category": [
     "System", "Correctness"
   ]

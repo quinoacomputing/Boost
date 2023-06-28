@@ -16,6 +16,7 @@ local SOURCES =
     dynamic_body.cpp
     error.cpp
     field.cpp
+    field_compiles.cpp
     fields.cpp
     file_body.cpp
     message.cpp
@@ -36,11 +37,22 @@ local RUN_TESTS ;
 
 for local f in $(SOURCES)
 {
-    RUN_TESTS += [ run $(f) $(TEST_MAIN) ] ;
+    RUN_TESTS += [ run $(f)
+        /boost/beast/test//lib-test
+    ] ;
 }
 
 alias run-tests : $(RUN_TESTS) ;
 
-exe fat-tests : $(TEST_MAIN) $(SOURCES) ;
+exe fat-tests :
+    $(SOURCES)
+    /boost/beast/test//lib-test
+    ;
 
 explicit fat-tests ;
+
+run $(SOURCES)
+    /boost/beast/test//lib-test
+    : : : : run-fat-tests ;
+
+explicit run-fat-tests ;
